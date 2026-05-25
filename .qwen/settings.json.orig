@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(del *)",
-      "Bash(dir)"
+      "Bash(dir)",
+      "Bash(echo.)"
     ]
   },
   "$version": 4

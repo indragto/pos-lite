@@ -3,7 +3,8 @@
     "allow": [
       "Bash(del *)",
       "Bash(dir)",
-      "Bash(echo.)"
+      "Bash(echo.)",
+      "Bash(move *)"
     ]
   },
   "$version": 4
