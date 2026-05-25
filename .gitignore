@@ -1,0 +1,66 @@
+# ========================================
+# POS Application - .gitignore
+# ========================================
+
+# --- Database ---
+database/*.db
+database/*.db-journal
+database/*.db-wal
+database/*.db-shm
+
+# --- Uploaded Files ---
+public/uploads/*
+!public/uploads/.gitkeep
+
+# --- Logs ---
+storage/logs/*
+!storage/logs/.gitkeep
+
+# --- Dependencies ---
+vendor/
+
+# --- Composer ---
+composer.lock
+
+# --- IDE & Editors ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# --- OS Files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Environment ---
+.env
+.env.local
+.env.*.local
+
+# --- PHP Cache ---
+__pycache__/
+*.pyc
+.phpunit.result.cache
+
+# --- Node (if applicable) ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Temporary Files ---
+*.tmp
+*.temp
+.cache/
+
+# --- Backup Files ---
+*.bak
+*.backup
+*.old
+
+# --- Debug/Init Scripts (delete after use) ---
+init_db.php
