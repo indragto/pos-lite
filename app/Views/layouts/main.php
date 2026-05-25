@@ -14,123 +14,155 @@
 </head>
 <body>
     <div class="app-wrapper">
+        <!-- Sidebar Overlay (mobile) -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <i class="fas fa-cash-register"></i>
-                <span class="sidebar-title"><?= e(setting('store_name', 'POS')) ?></span>
-                <button class="sidebar-toggle d-lg-none" onclick="toggleSidebar()">
+            <!-- Brand -->
+            <div class="sidebar-brand">
+                <div class="brand-icon">
+                    <i class="fas fa-cash-register"></i>
+                </div>
+                <span class="brand-text"><?= e(setting('store_name', 'POS System')) ?></span>
+                <button class="sidebar-close d-lg-none" onclick="toggleSidebar()">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
 
+            <!-- Navigation -->
             <nav class="sidebar-nav">
                 <?php
                 $currentPage = $_GET['url'] ?? '';
                 $user = currentUser();
+
+                // Helper to check active state
+                function isActive(string $page, string $current): bool {
+                    if ($page === '' && $current === '') return true;
+                    if ($page === '') return false;
+                    return $current === $page || str_starts_with($current, $page . '/') || str_starts_with($current, $page . '?');
+                }
                 ?>
 
-                <a href="<?= url('dashboard') ?>" 
-                   class="nav-item <?= str_starts_with($currentPage, 'dashboard') ? 'active' : '' ?>">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span>Dashboard</span>
+                <!-- Main Menu -->
+                <div class="nav-section-label">Main</div>
+
+                <a href="<?= url('dashboard') ?>"
+                   class="nav-link <?= isActive('dashboard', $currentPage) ? 'active' : '' ?>">
+                    <span class="nav-icon"><i class="fas fa-tachometer-alt"></i></span>
+                    <span class="nav-text">Dashboard</span>
                 </a>
 
                 <?php if (hasPermission('transactions.pos')): ?>
-                <a href="<?= url('pos') ?>" 
-                   class="nav-item <?= str_starts_with($currentPage, 'pos') ? 'active' : '' ?>">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span>Point of Sale</span>
+                <a href="<?= url('pos') ?>"
+                   class="nav-link <?= isActive('pos', $currentPage) ? 'active' : '' ?>">
+                    <span class="nav-icon"><i class="fas fa-shopping-cart"></i></span>
+                    <span class="nav-text">Point of Sale</span>
+                    <span class="nav-badge" style="background:var(--success)">POS</span>
                 </a>
                 <?php endif; ?>
 
+                <!-- Catalog -->
+                <div class="nav-section-label">Catalog</div>
+
                 <?php if (hasPermission('products.view')): ?>
-                <a href="<?= url('products') ?>" 
-                   class="nav-item <?= str_starts_with($currentPage, 'products') ? 'active' : '' ?>">
-                    <i class="fas fa-box"></i>
-                    <span>Products</span>
+                <a href="<?= url('products') ?>"
+                   class="nav-link <?= isActive('products', $currentPage) ? 'active' : '' ?>">
+                    <span class="nav-icon"><i class="fas fa-box"></i></span>
+                    <span class="nav-text">Products</span>
                 </a>
                 <?php endif; ?>
 
                 <?php if (hasPermission('categories.manage')): ?>
-                <a href="<?= url('categories') ?>" 
-                   class="nav-item <?= str_starts_with($currentPage, 'categories') ? 'active' : '' ?>">
-                    <i class="fas fa-tags"></i>
-                    <span>Categories</span>
+                <a href="<?= url('categories') ?>"
+                   class="nav-link <?= isActive('categories', $currentPage) ? 'active' : '' ?>">
+                    <span class="nav-icon"><i class="fas fa-tags"></i></span>
+                    <span class="nav-text">Categories</span>
                 </a>
                 <?php endif; ?>
 
+                <!-- Sales -->
+                <div class="nav-section-label">Sales</div>
+
                 <?php if (hasPermission('transactions.view')): ?>
-                <a href="<?= url('transactions') ?>" 
-                   class="nav-item <?= str_starts_with($currentPage, 'transactions') ? 'active' : '' ?>">
-                    <i class="fas fa-receipt"></i>
-                    <span>Transactions</span>
+                <a href="<?= url('transactions') ?>"
+                   class="nav-link <?= isActive('transactions', $currentPage) ? 'active' : '' ?>">
+                    <span class="nav-icon"><i class="fas fa-receipt"></i></span>
+                    <span class="nav-text">Transactions</span>
                 </a>
                 <?php endif; ?>
 
                 <?php if (hasPermission('reports.view')): ?>
-                <div class="nav-group">
-                    <a href="#" class="nav-group-toggle" onclick="toggleNavGroup(this)">
-                        <i class="fas fa-chart-bar"></i>
-                        <span>Reports</span>
-                        <i class="fas fa-chevron-down ms-auto"></i>
-                    </a>
-                    <div class="nav-group-items">
-                        <a href="<?= url('reports/daily') ?>" 
-                           class="nav-item <?= str_starts_with($currentPage, 'reports/daily') ? 'active' : '' ?>">
-                            <i class="fas fa-calendar-day"></i>
-                            <span>Daily Report</span>
+                <!-- Reports Submenu -->
+                <div class="nav-submenu <?= (isActive('reports/daily', $currentPage) || isActive('reports/monthly', $currentPage) || isActive('reports/products', $currentPage)) ? 'open' : '' ?>">
+                    <button class="nav-submenu-toggle" onclick="toggleSubmenu(this)">
+                        <span class="nav-icon"><i class="fas fa-chart-bar"></i></span>
+                        <span class="nav-text">Reports</span>
+                        <i class="fas fa-chevron-down submenu-arrow"></i>
+                    </button>
+                    <div class="nav-submenu-items">
+                        <a href="<?= url('reports/daily') ?>"
+                           class="nav-sub-item <?= isActive('reports/daily', $currentPage) ? 'active' : '' ?>">
+                            <i class="fas fa-circle"></i>
+                            <span>Daily</span>
                         </a>
-                        <a href="<?= url('reports/monthly') ?>" 
-                           class="nav-item <?= str_starts_with($currentPage, 'reports/monthly') ? 'active' : '' ?>">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span>Monthly Report</span>
+                        <a href="<?= url('reports/monthly') ?>"
+                           class="nav-sub-item <?= isActive('reports/monthly', $currentPage) ? 'active' : '' ?>">
+                            <i class="fas fa-circle"></i>
+                            <span>Monthly</span>
                         </a>
-                        <a href="<?= url('reports/products') ?>" 
-                           class="nav-item <?= str_starts_with($currentPage, 'reports/products') ? 'active' : '' ?>">
-                            <i class="fas fa-box-open"></i>
-                            <span>Product Sales</span>
+                        <a href="<?= url('reports/products') ?>"
+                           class="nav-sub-item <?= isActive('reports/products', $currentPage) ? 'active' : '' ?>">
+                            <i class="fas fa-circle"></i>
+                            <span>Products</span>
                         </a>
                     </div>
                 </div>
                 <?php endif; ?>
 
-                <div class="nav-divider"></div>
+                <!-- Administration -->
+                <div class="nav-section-label">Admin</div>
 
                 <?php if (hasPermission('users.manage')): ?>
-                <a href="<?= url('users') ?>" 
-                   class="nav-item <?= str_starts_with($currentPage, 'users') ? 'active' : '' ?>">
-                    <i class="fas fa-users"></i>
-                    <span>Users</span>
+                <a href="<?= url('users') ?>"
+                   class="nav-link <?= isActive('users', $currentPage) ? 'active' : '' ?>">
+                    <span class="nav-icon"><i class="fas fa-users"></i></span>
+                    <span class="nav-text">Users</span>
                 </a>
                 <?php endif; ?>
 
                 <?php if (hasPermission('roles.manage')): ?>
-                <a href="<?= url('roles') ?>" 
-                   class="nav-item <?= str_starts_with($currentPage, 'roles') ? 'active' : '' ?>">
-                    <i class="fas fa-user-shield"></i>
-                    <span>Roles</span>
+                <a href="<?= url('roles') ?>"
+                   class="nav-link <?= isActive('roles', $currentPage) ? 'active' : '' ?>">
+                    <span class="nav-icon"><i class="fas fa-user-shield"></i></span>
+                    <span class="nav-text">Roles & Permissions</span>
                 </a>
                 <?php endif; ?>
 
                 <?php if (hasPermission('settings.manage')): ?>
-                <a href="<?= url('settings') ?>" 
-                   class="nav-item <?= str_starts_with($currentPage, 'settings') ? 'active' : '' ?>">
-                    <i class="fas fa-cog"></i>
-                    <span>Settings</span>
+                <a href="<?= url('settings') ?>"
+                   class="nav-link <?= isActive('settings', $currentPage) ? 'active' : '' ?>">
+                    <span class="nav-icon"><i class="fas fa-cog"></i></span>
+                    <span class="nav-text">Settings</span>
                 </a>
                 <?php endif; ?>
             </nav>
 
+            <!-- User Footer -->
             <div class="sidebar-footer">
-                <div class="user-info">
+                <div class="user-card">
                     <div class="user-avatar">
                         <?= strtoupper(substr($user['full_name'] ?? 'U', 0, 1)) ?>
                     </div>
-                    <div class="user-details">
+                    <div class="user-info">
                         <div class="user-name"><?= e($user['full_name'] ?? '') ?></div>
                         <div class="user-role"><?= e($user['role_name'] ?? '') ?></div>
                     </div>
+                    <a href="<?= url('logout') ?>" class="user-logout"
+                       onclick="return confirm('Are you sure you want to logout?')"
+                       title="Logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
                 </div>
             </div>
         </aside>
@@ -193,10 +225,11 @@
     <script>
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('show');
+        document.getElementById('sidebarOverlay').classList.toggle('show');
     }
 
-    function toggleNavGroup(element) {
-        element.parentElement.classList.toggle('open');
+    function toggleSubmenu(btn) {
+        btn.closest('.nav-submenu').classList.toggle('open');
     }
     </script>
 </body>

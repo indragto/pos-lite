@@ -80,6 +80,11 @@ Navigate to your application URL in a browser.
 
 **⚠️ Change these passwords after first login!**
 
+**To regenerate password hash:**
+```bash
+php -r "echo password_hash('yourpassword', PASSWORD_BCRYPT);"
+```
+
 ## Project Structure
 
 ```

@@ -185,16 +185,12 @@ INSERT OR IGNORE INTO role_permissions (role_id, permission_id) VALUES
 
 -- =====================================================
 -- SEED DATA: USERS
--- Password: password_hash() with bcrypt for 'admin123' and 'cashier123'
--- admin123 => $2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi
--- cashier123 => $2y$10$rM8CqZ3vN5jK7pL2wX4y.eO6tR8uI0aS1dF3gH5jK7lM9nO1pQ2rS
+-- Default password for both users is 'admin123'
+-- Hash generated with: password_hash('admin123', PASSWORD_BCRYPT)
 -- =====================================================
 INSERT OR IGNORE INTO users (id, username, password, full_name, email, role_id, is_active) VALUES
-(1, 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator', 'admin@pos.local', 1, 1),
-(2, 'cashier01', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'John Cashier', 'cashier@pos.local', 3, 1);
-
--- Note: Default password for both users is 'admin123' for easy setup
--- Change passwords after first login!
+(1, 'admin', '$2y$10$EoxyfyJO26K/MmBxO6GsjepKjQQW6octWlRWBtjkmhV1deHzfPs7O', 'Administrator', 'admin@pos.local', 1, 1),
+(2, 'cashier01', '$2y$10$EoxyfyJO26K/MmBxO6GsjepKjQQW6octWlRWBtjkmhV1deHzfPs7O', 'John Cashier', 'cashier@pos.local', 3, 1);
 
 -- =====================================================
 -- SEED DATA: SETTINGS
