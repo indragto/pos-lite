@@ -1,120 +1,143 @@
-  <?php
-/**
- * Users Index View
- * Variables: $title, $users, $roles
- */
-?>
+<div class="page-header">
+    <div>
+        <h1><?= e($title) ?></h1>
+        <p>Manage system users</p>
+    </div>
+    <?php if (hasPermission('users.create')): ?>
+    <a href="<?= url('users/create') ?>" class="btn btn-primary">
+        <i class="fas fa-plus"></i>Add User
+    </a>
+    <?php endif; ?>
+</div>
 
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h5 class="mb-1"><i class="fas fa-users me-2"></i>Users</h5>
-            <p class="text-muted mb-0">Manage system users and their access</p>
-        </div>
-        <?php if (hasPermission('users.create')): ?>
-        <a href="<?= url('users/create') ?>" class="btn btn-primary" style="min-height: 44px;">
-            <i class="fas fa-plus me-2"></i>Add User
-        </a>
-        <?php endif; ?>
+<!-- Toolbar -->
+<form method="GET" action="<?= url('users') ?>" class="toolbar mb-4">
+    <input type="text" class="form-control" name="search" value="<?= e($search) ?>"
+           placeholder="Search users...">
+    <select class="form-select" name="role_id">
+        <option value="">All Roles</option>
+        <?php foreach ($roles as $role): ?>
+        <option value="<?= $role['id'] ?>" <?= ($roleId ?? '') == $role['id'] ? 'selected' : '' ?>>
+            <?= e($role['name']) ?>
+        </option>
+        <?php endforeach; ?>
+    </select>
+    <button type="submit" class="btn btn-primary">
+        <i class="fas fa-filter"></i>Filter
+    </button>
+    <a href="<?= url('users') ?>" class="btn btn-outline">
+        <i class="fas fa-undo"></i>Reset
+    </a>
+</form>
+
+<!-- Users Table -->
+<div class="card">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($users)): ?>
+                    <?php foreach ($users as $user): ?>
+                    <tr>
+                        <td><code><?= e($user['username']) ?></code></td>
+                        <td class="fw-bold"><?= e($user['full_name']) ?></td>
+                        <td class="text-muted"><?= e($user['email'] ?? '—') ?></td>
+                        <td><span class="badge badge-info"><?= e($user['role_name'] ?? '—') ?></span></td>
+                        <td class="text-center">
+                            <?php if ($user['is_active']): ?>
+                            <span class="badge badge-success">Active</span>
+                            <?php else: ?>
+                            <span class="badge badge-danger">Inactive</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <div class="btn-group-actions justify-content-end">
+                                <?php if (hasPermission('users.edit')): ?>
+                                <a href="<?= url("users/edit/{$user['id']}") ?>"
+                                   class="btn btn-sm btn-outline" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <?php endif; ?>
+                                <?php if (hasPermission('users.delete') && $user['id'] !== currentUser()['id']): ?>
+                                <form action="<?= url("users/toggle/{$user['id']}") ?>" method="POST"
+                                      onsubmit="return confirm('Toggle status for <?= e($user['full_name']) ?>?')">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="btn btn-sm btn-outline"
+                                            title="<?= $user['is_active'] ? 'Deactivate' : 'Activate' ?>">
+                                        <i class="fas fa-<?= $user['is_active'] ? 'ban' : 'check' ?>"></i>
+                                    </button>
+                                </form>
+                                <form action="<?= url("users/delete/{$user['id']}") ?>" method="POST"
+                                      onsubmit="return confirm('Delete <?= e($user['full_name']) ?>?')">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="fas fa-users"></i>
+                                <h5>No users found</h5>
+                                <?php if (hasPermission('users.create')): ?>
+                                <p>Add your first user to get started</p>
+                                <a href="<?= url('users/create') ?>" class="btn btn-sm btn-primary mt-2">
+                                    <i class="fas fa-plus"></i>Add User
+                                </a>
+                                <?php else: ?>
+                                <p>Contact your administrator</p>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
     </div>
 
-    <!-- Users List -->
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="ps-3">User</th>
-                            <th class="d-none d-md-table-cell">Username</th>
-                            <th class="d-none d-lg-table-cell">Role</th>
-                            <th class="text-center">Status</th>
-                            <th class="d-none d-lg-table-cell">Last Login</th>
-                            <th class="text-end pe-3">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (!empty($users)): ?>
-                            <?php foreach ($users as $user): ?>
-                            <tr>
-                                <td class="ps-3">
-                                    <div class="d-flex align-items-center">
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center me-3
-                                                    <?= $user['is_active'] ? 'bg-primary' : 'bg-secondary' ?>"
-                                             style="width: 44px; height: 44px;">
-                                            <span class="text-white fw-bold fs-5">
-                                                <?= strtoupper(substr($user['full_name'], 0, 1)) ?>
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <span class="fw-semibold"><?= e($user['full_name']) ?></span>
-                                            <br><small class="text-muted"><?= e($user['email'] ?? '-') ?></small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="d-none d-md-table-cell">
-                                    <code><?= e($user['username']) ?></code>
-                                </td>
-                                <td class="d-none d-lg-table-cell">
-                                    <span class="badge bg-info"><?= e($user['role_name'] ?? 'No Role') ?></span>
-                                </td>
-                                <td class="text-center">
-                                    <?php if ($user['is_active']): ?>
-                                    <span class="badge bg-success bg-opacity-10 text-success">
-                                        <i class="fas fa-check-circle me-1"></i>Active
-                                    </span>
-                                    <?php else: ?>
-                                    <span class="badge bg-danger bg-opacity-10 text-danger">
-                                        <i class="fas fa-times-circle me-1"></i>Inactive
-                                    </span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="d-none d-lg-table-cell text-muted">
-                                    <?= $user['last_login'] ? formatDate($user['last_login']) : '<span class="text-muted">Never</span>' ?>
-                                </td>
-                                <td class="text-end pe-3">
-                                    <div class="btn-group" role="group">
-                                        <?php if (hasPermission('users.edit')): ?>
-                                        <a href="<?= url("users/edit/{$user['id']}") ?>"
-                                           class="btn btn-sm btn-outline-primary"
-                                           style="min-height: 44px; min-width: 44px;" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <?php endif; ?>
-                                        <?php if (hasPermission('users.delete') && $user['id'] !== currentUser()['id']): ?>
-                                        <form action="<?= url("users/delete/{$user['id']}") ?>"
-                                              method="POST" class="d-inline"
-                                              onsubmit="return confirm('Are you sure you want to delete <?= e($user['full_name']) ?>?')">
-                                            <?= csrf_field() ?>
-                                            <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                    style="min-height: 44px; min-width: 44px;" title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="6" class="text-center py-5 text-muted">
-                                    <i class="fas fa-users fa-3x mb-3 d-block opacity-50"></i>
-                                    <p class="mb-1">No users found</p>
-                                    <small>
-                                        <?php if (hasPermission('users.create')): ?>
-                                            Add your first user to get started
-                                        <?php else: ?>
-                                            Contact your administrator to add users
-                                        <?php endif; ?>
-                                    </small>
-                                </td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    <?php if (($totalPages ?? 1) > 1): ?>
+    <div class="card-footer">
+        <nav>
+            <ul class="pagination mb-0">
+                <?php
+                $uParams = [];
+                if ($search ?? '') $uParams['search'] = $search;
+                if ($roleId ?? '') $uParams['role_id'] = $roleId;
+                $uQs = http_build_query($uParams);
+                $uBase = url('users') . ($uQs ? '?' . $uQs . '&' : '?');
+                ?>
+                <?php if (($page ?? 1) > 1): ?>
+                <li><a href="<?= $uBase ?>page=<?= ($page ?? 1) - 1 ?>"><i class="fas fa-chevron-left"></i></a></li>
+                <?php endif; ?>
+                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <?php if ($i == 1 || $i == $totalPages || abs($i - ($page ?? 1)) <= 2): ?>
+                    <li class="<?= $i == ($page ?? 1) ? 'active' : '' ?>">
+                        <a href="<?= $uBase ?>page=<?= $i ?>"><?= $i ?></a>
+                    </li>
+                    <?php elseif (abs($i - ($page ?? 1)) == 3): ?>
+                    <li><span>...</span></li>
+                    <?php endif; ?>
+                <?php endfor; ?>
+                <?php if (($page ?? 1) < $totalPages): ?>
+                <li><a href="<?= $uBase ?>page=<?= ($page ?? 1) + 1 ?>"><i class="fas fa-chevron-right"></i></a></li>
+                <?php endif; ?>
+            </ul>
+        </nav>
     </div>
+    <?php endif; ?>
 </div>
