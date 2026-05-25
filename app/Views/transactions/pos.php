@@ -550,7 +550,10 @@
 
                     html += '<div class="col-6 col-md-4 col-xl-3">';
                     html += '  <div class="card product-card h-100' + (outOfStock ? ' out-of-stock' : '') + '"';
-                    html += '       onclick="window._posAddToCart(' + pId + ',\'' + eName.replace(/'/g, "\\'") + '\',' + pPrice + ',' + pStock + ')"';
+                    html += '       data-product-id="' + pId + '"';
+                    html += '       data-product-name="' + eName.replace(/"/g, '&quot;') + '"';
+                    html += '       data-product-price="' + pPrice + '"';
+                    html += '       data-product-stock="' + pStock + '"';
                     html += '       style="cursor:' + (outOfStock ? 'not-allowed' : 'pointer') + ';">';
                     html += '    <div class="card-body p-2 text-center">';
                     if (p.image) {
@@ -573,9 +576,6 @@
                 if (empty) empty.style.display = '';
             });
     }
-
-    // Expose to global for inline onclick
-    window._posAddToCart = addToCart;
 
     // ===== Payment Modal =====
     function openPaymentModal() {
