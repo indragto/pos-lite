@@ -6,7 +6,8 @@
       "Bash(echo.)",
       "Bash(move *)",
       "Bash(php *)",
-      "Bash(find *)"
+      "Bash(find *)",
+      "Bash(powershell *)"
     ]
   },
   "$version": 4

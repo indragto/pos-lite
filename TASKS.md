@@ -570,6 +570,170 @@
 
 ---
 
+## Phase 7: Accounting Module
+
+### 7.1 Database Setup
+- [ ] Create `coa` table schema in schema.sql
+- [ ] Create `journal_entries` table schema
+- [ ] Create `journal_lines` table schema
+- [ ] Add accounting settings to seed data
+- [ ] Create indexes on coa.code, journal_entries.date, journal_lines.entry_id
+- [ ] Seed standard COA data (assets, liabilities, equity, revenue, expense)
+- [ ] Add 7 new permissions to seed data
+- [ ] Assign accounting permissions to Super Admin role
+
+### 7.2 COA Model & Controller
+- [ ] Create `app/Models/Coa.php`
+  - [ ] CRUD operations
+  - [ ] `getTree()` - hierarchical COA structure
+  - [ ] `getChildren($parentId)` - child accounts
+  - [ ] `getBalance($coaId, $startDate, $endDate)` - account balance from journal
+  - [ ] `getPath($coaId)` - account hierarchy path
+  - [ ] `hasJournalEntries($coaId)` - check if account is used
+  - [ ] `getByType($type)` - filter by account type
+- [ ] Create `app/Controllers/CoaController.php`
+  - [ ] `index()` - COA list grouped by type
+  - [ ] `create()` - display create form
+  - [ ] `store()` - save new COA
+  - [ ] `edit($id)` - display edit form
+  - [ ] `update($id)` - update COA
+  - [ ] `delete($id)` - delete (check if used in journals)
+  - [ ] `tree()` - AJAX tree view data
+- [ ] Create `app/Views/accounting/coa/index.php`
+  - [ ] Tree/nested list view
+  - [ ] Flat list view with toggle
+  - [ ] Type filter tabs
+  - [ ] Create button
+  - [ ] Edit/Delete per account
+  - [ ] Balance column from journals
+- [ ] Create `app/Views/accounting/coa/create.php`
+  - [ ] Code, Name, Type (select), Parent (select), Active toggle
+  - [ ] Validation (code unique, type required)
+- [ ] Create `app/Views/accounting/coa/edit.php`
+
+### 7.3 Journal Model & Controller
+- [ ] Create `app/Models/JournalEntry.php`
+  - [ ] `createEntry($data, $lines)` - with double-entry validation
+  - [ ] `getEntry($id)` - with lines and COA info
+  - [ ] `getEntries($startDate, $endDate, $search)` - filtered list
+  - [ ] `voidEntry($id, $reason)` - void with reversal
+  - [ ] `validateBalance($lines)` - ensure debit = credit
+  - [ ] `generateEntryNo()` - auto number (JNL/YYYYMMDD/XXXX)
+  - [ ] `getByReference($type, $id)` - find by reference
+- [ ] Create `app/Models/JournalLine.php`
+  - [ ] CRUD for journal lines
+  - [ ] `getByEntry($entryId)` with COA details
+- [ ] Create `app/Controllers/JournalController.php`
+  - [ ] `index()` - journal list with filters
+  - [ ] `create()` - journal form
+  - [ ] `store()` - save journal with validation
+  - [ ] `show($id)` - journal detail
+  - [ ] `void($id)` - void journal
+  - [ ] `createFromTransaction($transactionId)` - auto-post from POS
+- [ ] Create `app/Views/accounting/journal/index.php`
+  - [ ] Table: Entry No, Date, Description, Reference, Debit, Credit, Actions
+  - [ ] Date range filter
+  - [ ] Search by entry no or description
+  - [ ] View/Void buttons
+- [ ] Create `app/Views/accounting/journal/create.php`
+  - [ ] Date, Description, Reference fields
+  - [ ] Dynamic lines table (add/remove rows)
+  - [ ] Each line: COA (autocomplete), Debit, Credit, Description
+  - [ ] Real-time debit/credit balance indicator
+  - [ ] Submit disabled if unbalanced
+- [ ] Create `app/Views/accounting/journal/show.php`
+  - [ ] Entry header info
+  - [ ] Lines table
+  - [ ] Void button with reason modal
+
+### 7.4 General Ledger
+- [ ] Create `app/Controllers/AccountingReportController.php`
+  - [ ] `ledger()` - general ledger view
+  - [ ] `trialBalance()` - trial balance report
+  - [ ] `incomeStatement()` - profit/loss report
+  - [ ] `balanceSheet()` - balance sheet report
+  - [ ] `cashFlow()` - cash flow statement
+- [ ] Create `app/Views/accounting/reports/ledger.php`
+  - [ ] Account selector (dropdown or search)
+  - [ ] Date range filter
+  - [ ] Opening balance row
+  - [ ] Journal lines with running balance
+  - [ ] Debit/Credit/Balance columns
+  - [ ] Total row
+  - [ ] Export CSV button
+  - [ ] Click to journal detail
+
+### 7.5 Trial Balance
+- [ ] Create `app/Views/accounting/reports/trial-balance.php`
+  - [ ] Date/period filter
+  - [ ] Table: Account Code, Name, Debit, Credit
+  - [ ] Grouped by account type
+  - [ ] Total debit/credit footer (must match)
+  - [ ] Zero-balance toggle
+  - [ ] Export CSV button
+
+### 7.6 Income Statement
+- [ ] Create `app/Views/accounting/reports/income-statement.php`
+  - [ ] Period selector (month/quarter/year)
+  - [ ] Revenue section (grouped accounts)
+  - [ ] Expense section (grouped accounts)
+  - [ ] Net Income = Revenue - Expense
+  - [ ] Compare with previous period (optional)
+  - [ ] Export CSV/PDF button
+
+### 7.7 Balance Sheet
+- [ ] Create `app/Views/accounting/reports/balance-sheet.php`
+  - [ ] As-of date selector
+  - [ ] Assets section (current, fixed)
+  - [ ] Liabilities section (current, long-term)
+  - [ ] Equity section
+  - [ ] Validation: Assets = Liabilities + Equity
+  - [ ] Export CSV/PDF button
+
+### 7.8 Cash Flow Statement
+- [ ] Create `app/Views/accounting/reports/cash-flow.php`
+  - [ ] Period selector
+  - [ ] Operating activities
+  - [ ] Investing activities
+  - [ ] Financing activities
+  - [ ] Net cash flow summary
+  - [ ] Export CSV button
+
+### 7.9 Accounting Settings
+- [ ] Create `app/Views/accounting/settings/index.php`
+  - [ ] Auto-post toggle (checkbox)
+  - [ ] Default account mappings (dropdowns from COA)
+    - Sales revenue account
+    - COGS account
+    - Tax payable account
+    - Cash account
+  - [ ] Fiscal year start month
+  - [ ] Save settings button
+
+### 7.10 Auto-Posting Integration
+- [ ] Modify `TransactionController::store()` to optionally create journal entry
+  - [ ] Debit: Cash/AR account
+  - [ ] Credit: Sales revenue account
+  - [ ] Credit: Tax payable account (if applicable)
+  - [ ] Debit: COGS account (if tracking inventory)
+  - [ ] Credit: Inventory account
+- [ ] Link journal entry to transaction via reference_type/reference_id
+
+### 7.11 UI Integration
+- [ ] Add "Accounting" nav section in sidebar (main.php)
+  - [ ] Chart of Accounts
+  - [ ] Journal Entries
+  - [ ] General Ledger
+  - [ ] Trial Balance
+  - [ ] Income Statement
+  - [ ] Balance Sheet
+  - [ ] Cash Flow
+  - [ ] Accounting Settings
+- [ ] Add accounting routes to `config/routes.php`
+- [ ] Add accounting permissions to RBAC middleware
+
+---
+
 ## Dependencies
 
 ### Phase Dependencies
@@ -578,12 +742,13 @@
 - Phase 4 depends on Phase 1 & 3 (needs Products & Auth)
 - Phase 5 depends on Phase 4 (needs Transactions)
 - Phase 6 depends on all previous phases
+- Phase 7 depends on Phase 1-4 (needs Transactions for auto-posting, RBAC for permissions)
 
 ### Critical Path
 ```
 Phase 1 → Phase 2 → Phase 4 → Phase 5
-    ↓
-Phase 3 ──────→ Phase 4
+    ↓                         ↓
+Phase 3 ──────→ Phase 4   Phase 7
                               ↓
                           Phase 6
 ```

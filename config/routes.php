@@ -73,4 +73,30 @@ return [
     // Settings
     'settings'                      => ['controller' => 'Setting', 'action' => 'index', 'middleware' => ['auth', 'rbac:settings.manage']],
     'settings/update'               => ['controller' => 'Setting', 'action' => 'update', 'middleware' => ['auth', 'rbac:settings.manage']],
+
+    // Accounting - COA
+    'accounting/coa'                => ['controller' => 'Coa', 'action' => 'index', 'middleware' => ['auth', 'rbac:accounting.coa.view']],
+    'accounting/coa/create'         => ['controller' => 'Coa', 'action' => 'create', 'middleware' => ['auth', 'rbac:accounting.coa.manage']],
+    'accounting/coa/store'          => ['controller' => 'Coa', 'action' => 'store', 'middleware' => ['auth', 'rbac:accounting.coa.manage']],
+    'accounting/coa/edit/:id'       => ['controller' => 'Coa', 'action' => 'edit', 'middleware' => ['auth', 'rbac:accounting.coa.manage']],
+    'accounting/coa/update/:id'     => ['controller' => 'Coa', 'action' => 'update', 'middleware' => ['auth', 'rbac:accounting.coa.manage']],
+    'accounting/coa/delete/:id'     => ['controller' => 'Coa', 'action' => 'delete', 'middleware' => ['auth', 'rbac:accounting.coa.manage']],
+
+    // Accounting - Journal
+    'accounting/journal'            => ['controller' => 'Journal', 'action' => 'index', 'middleware' => ['auth', 'rbac:accounting.journal.view']],
+    'accounting/journal/create'     => ['controller' => 'Journal', 'action' => 'create', 'middleware' => ['auth', 'rbac:accounting.journal.create']],
+    'accounting/journal/store'      => ['controller' => 'Journal', 'action' => 'store', 'middleware' => ['auth', 'rbac:accounting.journal.create']],
+    'accounting/journal/:id'        => ['controller' => 'Journal', 'action' => 'show', 'middleware' => ['auth', 'rbac:accounting.journal.view']],
+    'accounting/journal/void/:id'   => ['controller' => 'Journal', 'action' => 'void', 'middleware' => ['auth', 'rbac:accounting.journal.void']],
+
+    // Accounting - Reports
+    'accounting/ledger'             => ['controller' => 'AccountingReport', 'action' => 'ledger', 'middleware' => ['auth', 'rbac:accounting.reports.view']],
+    'accounting/trial-balance'      => ['controller' => 'AccountingReport', 'action' => 'trialBalance', 'middleware' => ['auth', 'rbac:accounting.reports.view']],
+    'accounting/income-statement'   => ['controller' => 'AccountingReport', 'action' => 'incomeStatement', 'middleware' => ['auth', 'rbac:accounting.reports.view']],
+    'accounting/balance-sheet'      => ['controller' => 'AccountingReport', 'action' => 'balanceSheet', 'middleware' => ['auth', 'rbac:accounting.reports.view']],
+    'accounting/cash-flow'          => ['controller' => 'AccountingReport', 'action' => 'cashFlow', 'middleware' => ['auth', 'rbac:accounting.reports.view']],
+
+    // Accounting - Settings
+    'accounting/settings'           => ['controller' => 'AccountingReport', 'action' => 'settings', 'middleware' => ['auth', 'rbac:accounting.settings.manage']],
+    'accounting/settings/update'    => ['controller' => 'AccountingReport', 'action' => 'updateSettings', 'middleware' => ['auth', 'rbac:accounting.settings.manage']],
 ];

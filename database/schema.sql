@@ -227,3 +227,148 @@ INSERT OR IGNORE INTO products (sku, name, category_id, price, cost, stock, is_a
 ('PRD008', 'Coklat Batang', 3, 12000, 7000, 35, 1),
 ('PRD009', 'Beras 1kg', 4, 15000, 12000, 100, 1),
 ('PRD010', 'Minyak Goreng 1L', 4, 18000, 15000, 50, 1);
+
+-- =====================================================
+-- ACCOUNTING MODULE TABLES
+-- =====================================================
+
+-- Chart of Accounts
+CREATE TABLE IF NOT EXISTS coa (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL CHECK(type IN ('asset','liability','equity','revenue','expense')),
+    parent_id INTEGER REFERENCES coa(id),
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Journal Entries
+CREATE TABLE IF NOT EXISTS journal_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entry_no TEXT UNIQUE NOT NULL,
+    date DATE NOT NULL,
+    description TEXT,
+    reference_type TEXT,
+    reference_id INTEGER,
+    created_by INTEGER REFERENCES users(id),
+    status TEXT DEFAULT 'posted' CHECK(status IN ('posted','voided')),
+    void_reason TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Journal Lines
+CREATE TABLE IF NOT EXISTS journal_lines (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entry_id INTEGER NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
+    coa_id INTEGER NOT NULL REFERENCES coa(id),
+    debit REAL DEFAULT 0,
+    credit REAL DEFAULT 0,
+    description TEXT
+);
+
+-- Accounting Indexes
+CREATE INDEX IF NOT EXISTS idx_coa_code ON coa(code);
+CREATE INDEX IF NOT EXISTS idx_coa_type ON coa(type);
+CREATE INDEX IF NOT EXISTS idx_coa_parent ON coa(parent_id);
+CREATE INDEX IF NOT EXISTS idx_je_date ON journal_entries(date);
+CREATE INDEX IF NOT EXISTS idx_je_entry_no ON journal_entries(entry_no);
+CREATE INDEX IF NOT EXISTS idx_je_status ON journal_entries(status);
+CREATE INDEX IF NOT EXISTS idx_je_reference ON journal_entries(reference_type, reference_id);
+CREATE INDEX IF NOT EXISTS idx_jl_entry ON journal_lines(entry_id);
+CREATE INDEX IF NOT EXISTS idx_jl_coa ON journal_lines(coa_id);
+
+-- =====================================================
+-- SEED DATA: ACCOUNTING PERMISSIONS
+-- =====================================================
+INSERT OR IGNORE INTO permissions (name, description) VALUES
+('accounting.coa.view', 'View chart of accounts'),
+('accounting.coa.manage', 'Manage chart of accounts'),
+('accounting.journal.view', 'View journal entries'),
+('accounting.journal.create', 'Create journal entries'),
+('accounting.journal.void', 'Void journal entries'),
+('accounting.reports.view', 'View financial reports'),
+('accounting.settings.manage', 'Manage accounting settings');
+
+-- Assign accounting permissions to Super Admin (role_id=1)
+-- Permission IDs 14-20 (after the 13 existing)
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id) VALUES
+(1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20);
+
+-- =====================================================
+-- SEED DATA: ACCOUNTING SETTINGS
+-- =====================================================
+INSERT OR IGNORE INTO settings (key, value) VALUES
+('auto_post_journal', '0'),
+('default_sales_account', ''),
+('default_cogs_account', ''),
+('default_tax_account', ''),
+('default_cash_account', ''),
+('default_inventory_account', ''),
+('fiscal_year_start', '1');
+
+-- =====================================================
+-- SEED DATA: STANDARD COA (Indonesian Chart of Accounts)
+-- =====================================================
+
+-- 1. ASSETS
+INSERT OR IGNORE INTO coa (id, code, name, type, parent_id) VALUES
+(1, '1', 'ASET', 'asset', NULL),
+(2, '11', 'Aset Lancar', 'asset', 1),
+(3, '111', 'Kas', 'asset', 2),
+(4, '112', 'Kas Kecil', 'asset', 2),
+(5, '113', 'Bank BCA', 'asset', 2),
+(6, '114', 'Bank Mandiri', 'asset', 2),
+(7, '115', 'Piutang Usaha', 'asset', 2),
+(8, '116', 'Persediaan Barang Dagang', 'asset', 2),
+(9, '117', 'PPN Masukan', 'asset', 2),
+(10, '12', 'Aset Tetap', 'asset', 1),
+(11, '121', 'Peralatan Toko', 'asset', 10),
+(12, '122', 'Akumulasi Penyusutan Peralatan', 'asset', 10);
+
+-- 2. LIABILITIES
+INSERT OR IGNORE INTO coa (id, code, name, type, parent_id) VALUES
+(20, '2', 'LIABILITAS', 'liability', NULL),
+(21, '21', 'Liabilitas Jangka Pendek', 'liability', 20),
+(22, '211', 'Utang Usaha', 'liability', 21),
+(23, '212', 'Utang Gaji', 'liability', 21),
+(24, '213', 'PPN Keluaran', 'liability', 21),
+(25, '214', 'Utang Pajak', 'liability', 21);
+
+-- 3. EQUITY
+INSERT OR IGNORE INTO coa (id, code, name, type, parent_id) VALUES
+(30, '3', 'EKUITAS', 'equity', NULL),
+(31, '31', 'Modal Pemilik', 'equity', 30),
+(32, '32', 'Laba Ditahan', 'equity', 30),
+(33, '33', 'Laba Berjalan', 'equity', 30);
+
+-- 4. REVENUE
+INSERT OR IGNORE INTO coa (id, code, name, type, parent_id) VALUES
+(40, '4', 'PENDAPATAN', 'revenue', NULL),
+(41, '41', 'Pendapatan Penjualan', 'revenue', 40),
+(42, '411', 'Penjualan Makanan', 'revenue', 41),
+(43, '412', 'Penjualan Minuman', 'revenue', 41),
+(44, '413', 'Penjualan Snack', 'revenue', 41),
+(45, '414', 'Penjualan Lainnya', 'revenue', 41),
+(46, '42', 'Pendapatan Lainnya', 'revenue', 40),
+(47, '421', 'Pendapatan Jasa', 'revenue', 46);
+
+-- 5. EXPENSES
+INSERT OR IGNORE INTO coa (id, code, name, type, parent_id) VALUES
+(50, '5', 'BEBAN', 'expense', NULL),
+(51, '51', 'Harga Pokok Penjualan', 'expense', 50),
+(52, '511', 'Harga Pokok Makanan', 'expense', 51),
+(53, '512', 'Harga Pokok Minuman', 'expense', 51),
+(54, '513', 'Harga Pokok Snack', 'expense', 51),
+(55, '52', 'Beban Operasional', 'expense', 50),
+(56, '521', 'Beban Gaji Karyawan', 'expense', 55),
+(57, '522', 'Beban Sewa', 'expense', 55),
+(58, '523', 'Beban Listrik & Air', 'expense', 55),
+(59, '524', 'Beban Perlengkapan', 'expense', 55),
+(60, '525', 'Beban Transportasi', 'expense', 55),
+(61, '526', 'Beban Promosi', 'expense', 55),
+(62, '527', 'Beban Penyusutan', 'expense', 55),
+(63, '53', 'Beban Lainnya', 'expense', 50),
+(64, '531', 'Beban Administrasi Bank', 'expense', 63),
+(65, '532', 'Beban Pajak', 'expense', 63),
+(66, '533', 'Beban Lain-lain', 'expense', 63);

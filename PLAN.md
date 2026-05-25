@@ -569,6 +569,164 @@ chmod 775 public/uploads/
 
 ---
 
+## Phase 7: Accounting Module
+
+### 7.1 Chart of Accounts (COA)
+- [ ] Table `coa`: id, code (unique), name, type (asset/liability/equity/revenue/expense), parent_id (self-ref), is_active, created_at
+- [ ] COA model with tree/hierarchy support
+- [ ] CRUD COA with parent-child relationship
+- [ ] COA tree view (nested list)
+- [ ] COA list view with type grouping
+- [ ] Search & filter by type
+- [ ] Auto-generate standard COA (seed data)
+- [ ] Prevent delete if has journal entries
+- [ ] Calculate account balance from journal entries
+
+### 7.2 Journal Entries
+- [ ] Table `journal_entries`: id, entry_no (unique), date, description, reference_type, reference_id, created_by, created_at
+- [ ] Table `journal_lines`: id, entry_id, coa_id, debit, credit, description
+- [ ] Journal model with double-entry validation (debit = credit)
+- [ ] CRUD journal entries
+- [ ] Journal form with dynamic lines (add/remove rows)
+- [ ] Auto-generate entry number (JNL/YYYYMMDD/XXXX)
+- [ ] Reference linking (transactions, payments, etc.)
+- [ ] Journal list with date filter & search
+- [ ] Journal detail view with entry lines
+- [ ] Void/delete journal (with permission)
+- [ ] Auto-posting from POS transactions (configurable)
+- [ ] Recurring journal entries (optional)
+
+### 7.3 General Ledger (Buku Besar)
+- [ ] General Ledger view by account
+- [ ] Date range filter
+- [ ] Opening balance calculation
+- [ ] Running balance per transaction line
+- [ ] Debit/Credit columns with totals
+- [ ] Filter by account type or specific account
+- [ ] Export to CSV/PDF
+- [ ] Drill-down to journal entry detail
+
+### 7.4 Trial Balance (Neraca Saldo)
+- [ ] Trial Balance report
+- [ ] Date range / period filter
+- [ ] Account list with debit/credit balances
+- [ ] Total debit = total credit validation
+- [ ] Include/exclude zero-balance accounts toggle
+- [ ] Export to CSV
+- [ ] Print-friendly layout
+
+### 7.5 Financial Reports
+- [ ] **Income Statement (Laba Rugi)**
+  - [ ] Revenue accounts grouped
+  - [ ] Expense accounts grouped
+  - [ ] Net income calculation
+  - [ ] Period comparison (month-over-month)
+  - [ ] Export to CSV/PDF
+- [ ] **Balance Sheet (Neraca)**
+  - [ ] Assets (current, fixed)
+  - [ ] Liabilities (current, long-term)
+  - [ ] Equity section
+  - [ ] Balance validation (A = L + E)
+  - [ ] Export to CSV/PDF
+- [ ] **Cash Flow Statement (Arus Kas)**
+  - [ ] Operating activities
+  - [ ] Investing activities
+  - [ ] Financing activities
+  - [ ] Net cash flow
+  - [ ] Export to CSV/PDF
+
+### 7.6 Accounting Settings
+- [ ] Auto-posting toggle (POS → Journal)
+- [ ] Default accounts mapping (sales, tax, COGS, etc.)
+- [ ] Fiscal year settings
+- [ ] Account closing period
+- [ ] Re-open closed period (admin only)
+
+### New Database Tables
+```sql
+-- Chart of Accounts
+CREATE TABLE coa (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL CHECK(type IN ('asset','liability','equity','revenue','expense')),
+    parent_id INTEGER REFERENCES coa(id),
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Journal Entries
+CREATE TABLE journal_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entry_no TEXT UNIQUE NOT NULL,
+    date DATE NOT NULL,
+    description TEXT,
+    reference_type TEXT,
+    reference_id INTEGER,
+    created_by INTEGER REFERENCES users(id),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Journal Lines
+CREATE TABLE journal_lines (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entry_id INTEGER NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
+    coa_id INTEGER NOT NULL REFERENCES coa(id),
+    debit REAL DEFAULT 0,
+    credit REAL DEFAULT 0,
+    description TEXT
+);
+
+-- Accounting Settings
+INSERT INTO settings (key, value) VALUES
+('auto_post_journal', '0'),
+('default_sales_account', ''),
+('default_cogs_account', ''),
+('default_tax_account', ''),
+('default_cash_account', '');
+```
+
+### New Routes
+```
+accounting/coa
+accounting/coa/create
+accounting/coa/edit/:id
+accounting/journal
+accounting/journal/create
+accounting/journal/:id
+accounting/journal/void/:id
+accounting/ledger
+accounting/trial-balance
+accounting/income-statement
+accounting/balance-sheet
+accounting/cash-flow
+accounting/settings
+```
+
+### New Controllers
+- `CoaController` - Chart of Accounts CRUD
+- `JournalController` - Journal entries CRUD
+- `AccountingReportController` - Ledger, Trial Balance, Financial Reports
+- `AccountingSettingController` - Accounting configuration
+
+### New Models
+- `Coa` (tree methods: getChildren(), getBalance(), getPath())
+- `JournalEntry` (validateBalance(), post(), void())
+- `JournalLine`
+
+### New Permissions
+| Permission Key | Description |
+|---------------|-------------|
+| accounting.coa.view | View chart of accounts |
+| accounting.coa.manage | Manage chart of accounts |
+| accounting.journal.view | View journal entries |
+| accounting.journal.create | Create journal entries |
+| accounting.journal.void | Void journal entries |
+| accounting.reports.view | View financial reports |
+| accounting.settings.manage | Manage accounting settings |
+
+---
+
 ## Timeline Estimate
 
 | Phase              | Estimated Effort |
@@ -579,7 +737,8 @@ chmod 775 public/uploads/
 | Phase 4: POS Module    | 5-6 days      |
 | Phase 5: Reports       | 3-4 days      |
 | Phase 6: Polish        | 2-3 days      |
-| **Total**              | **18-24 days** |
+| Phase 7: Accounting    | 10-14 days    |
+| **Total**              | **28-38 days** |
 
 ---
 

@@ -95,6 +95,58 @@
                 </div>
                 <?php endif; ?>
 
+                <?php if (hasPermission('accounting.coa.view') || hasPermission('accounting.journal.view') || hasPermission('accounting.reports.view')): ?>
+                <div class="nav-section-label">Accounting</div>
+
+                <?php if (hasPermission('accounting.coa.view')): ?>
+                <a href="<?= url('accounting/coa') ?>" class="nav-link <?= isActive('accounting/coa', $currentPage) ? 'active' : '' ?>">
+                    <span class="nav-icon"><i class="fas fa-sitemap"></i></span>
+                    <span class="nav-text">Chart of Accounts</span>
+                </a>
+                <?php endif; ?>
+
+                <?php if (hasPermission('accounting.journal.view')): ?>
+                <a href="<?= url('accounting/journal') ?>" class="nav-link <?= isActive('accounting/journal', $currentPage) ? 'active' : '' ?>">
+                    <span class="nav-icon"><i class="fas fa-book"></i></span>
+                    <span class="nav-text">Journal Entries</span>
+                </a>
+                <?php endif; ?>
+
+                <?php if (hasPermission('accounting.reports.view')): ?>
+                <div class="nav-submenu <?= (isActive('accounting/ledger', $currentPage) || isActive('accounting/trial-balance', $currentPage) || isActive('accounting/income-statement', $currentPage) || isActive('accounting/balance-sheet', $currentPage) || isActive('accounting/cash-flow', $currentPage)) ? 'open' : '' ?>">
+                    <button class="nav-submenu-toggle" onclick="toggleSubmenu(this)">
+                        <span class="nav-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                        <span class="nav-text">Financial Reports</span>
+                        <i class="fas fa-chevron-down submenu-arrow"></i>
+                    </button>
+                    <div class="nav-submenu-items">
+                        <a href="<?= url('accounting/ledger') ?>" class="nav-sub-item <?= isActive('accounting/ledger', $currentPage) ? 'active' : '' ?>">
+                            <i class="fas fa-circle"></i><span>General Ledger</span>
+                        </a>
+                        <a href="<?= url('accounting/trial-balance') ?>" class="nav-sub-item <?= isActive('accounting/trial-balance', $currentPage) ? 'active' : '' ?>">
+                            <i class="fas fa-circle"></i><span>Trial Balance</span>
+                        </a>
+                        <a href="<?= url('accounting/income-statement') ?>" class="nav-sub-item <?= isActive('accounting/income-statement', $currentPage) ? 'active' : '' ?>">
+                            <i class="fas fa-circle"></i><span>Income Statement</span>
+                        </a>
+                        <a href="<?= url('accounting/balance-sheet') ?>" class="nav-sub-item <?= isActive('accounting/balance-sheet', $currentPage) ? 'active' : '' ?>">
+                            <i class="fas fa-circle"></i><span>Balance Sheet</span>
+                        </a>
+                        <a href="<?= url('accounting/cash-flow') ?>" class="nav-sub-item <?= isActive('accounting/cash-flow', $currentPage) ? 'active' : '' ?>">
+                            <i class="fas fa-circle"></i><span>Cash Flow</span>
+                        </a>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <?php if (hasPermission('accounting.settings.manage')): ?>
+                <a href="<?= url('accounting/settings') ?>" class="nav-link <?= isActive('accounting/settings', $currentPage) ? 'active' : '' ?>">
+                    <span class="nav-icon"><i class="fas fa-sliders-h"></i></span>
+                    <span class="nav-text">Accounting Settings</span>
+                </a>
+                <?php endif; ?>
+                <?php endif; ?>
+
                 <div class="nav-section-label">Admin</div>
 
                 <?php if (hasPermission('users.manage')): ?>
