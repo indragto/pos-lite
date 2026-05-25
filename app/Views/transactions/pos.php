@@ -152,9 +152,9 @@
 
     /* Tablet Portrait */
     @media (max-width:834px) {
-        .pos-layout { flex-direction:column; height:auto; }
-        .pos-products { height:55vh; min-height:280px; }
-        .pos-cart { width:100%; max-width:none; min-width:0; height:45vh; min-height:250px; border-left:none; border-top:2px solid var(--gray-200); }
+        .pos-layout { flex-direction:column; height:calc(100vh - var(--topbar-height) - 1px); }
+        .pos-products { height:50vh; min-height:200px; }
+        .pos-cart { width:100%; max-width:none; min-width:0; height:50vh; min-height:350px; border-left:none; border-top:2px solid var(--gray-200); }
         #productsContainer { grid-template-columns:repeat(auto-fill,minmax(95px,1fr)); gap:8px; }
     }
 </style>

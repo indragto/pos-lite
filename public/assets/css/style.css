@@ -887,13 +887,18 @@ body {
 .view-toggle .btn { min-height:40px; padding:8px 12px; font-size:14px; }
 .view-toggle .btn.active { background:var(--primary); color:white; border-color:var(--primary); }
 
-.view-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
-.view-grid .grid-card { background:white; border:1px solid var(--gray-200); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-xs); transition:var(--transition); }
-.view-grid .grid-card:hover { box-shadow:var(--shadow); }
-.view-grid .grid-card h5 { font-size:15px; font-weight:600; margin-bottom:4px; }
-.view-grid .grid-card p { color:var(--gray-500); font-size:13px; margin:0; }
-.view-grid .grid-meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
-.view-grid .grid-meta .badge { font-size:12px; }
-.view-grid .grid-actions { display:flex; gap:6px; margin-top:12px; padding-top:12px; border-top:1px solid var(--gray-100); }
+/* Default: show list, hide grid */
+#viewContainer .view-grid { display:none; }
+#viewContainer .view-list { display:block; }
 
-.view-list { display:block; }
+/* When container has view-grid class: show grid, hide list */
+#viewContainer.view-grid .view-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
+#viewContainer.view-grid .view-list { display:none; }
+
+#viewContainer .grid-card { background:white; border:1px solid var(--gray-200); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-xs); transition:var(--transition); }
+#viewContainer .grid-card:hover { box-shadow:var(--shadow); }
+#viewContainer .grid-card h5 { font-size:15px; font-weight:600; margin-bottom:4px; }
+#viewContainer .grid-card p { color:var(--gray-500); font-size:13px; margin:0; }
+#viewContainer .grid-meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+#viewContainer .grid-meta .badge { font-size:12px; }
+#viewContainer .grid-actions { display:flex; gap:6px; margin-top:12px; padding-top:12px; border-top:1px solid var(--gray-100); }
