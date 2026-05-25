@@ -25,7 +25,7 @@ $monthLabel = date('F Y', mktime(0, 0, 0, $monthNum, 1, $yearNum));
 
 <!-- Summary Cards -->
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
+    <div class="col-md-6">
         <div class="stat-card">
             <div class="stat-icon primary"><i class="fas fa-chart-line"></i></div>
             <div class="stat-content">
@@ -34,7 +34,7 @@ $monthLabel = date('F Y', mktime(0, 0, 0, $monthNum, 1, $yearNum));
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-6">
         <div class="stat-card">
             <div class="stat-icon success"><i class="fas fa-shopping-cart"></i></div>
             <div class="stat-content">
@@ -43,7 +43,7 @@ $monthLabel = date('F Y', mktime(0, 0, 0, $monthNum, 1, $yearNum));
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-6">
         <div class="stat-card">
             <div class="stat-icon info"><i class="fas fa-calculator"></i></div>
             <div class="stat-content">
@@ -52,7 +52,7 @@ $monthLabel = date('F Y', mktime(0, 0, 0, $monthNum, 1, $yearNum));
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-6">
         <div class="stat-card">
             <div class="stat-icon warning"><i class="fas fa-percent"></i></div>
             <div class="stat-content">
