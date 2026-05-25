@@ -1,102 +1,36 @@
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h5 class="mb-1">Categories</h5>
-            <p class="text-muted mb-0">Manage product categories</p>
+<div class="page-header">
+    <div><h1>Categories</h1><p>Organize your products</p></div>
+    <div class="d-flex gap-2 align-items-center">
+        <div class="view-toggle">
+            <button class="btn btn-outline view-toggle-btn active" data-view="list" data-container="viewContainer"><i class="fas fa-list"></i></button>
+            <button class="btn btn-outline view-toggle-btn" data-view="grid" data-container="viewContainer"><i class="fas fa-th-large"></i></button>
         </div>
-        <a href="<?= url('categories/create') ?>" class="btn btn-primary" style="min-height: 44px;">
-            <i class="fas fa-plus me-2"></i>Add Category
-        </a>
-    </div>
-
-    <!-- Categories Table -->
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="ps-3" style="min-width: 200px;">Name</th>
-                            <th class="d-none d-md-table-cell" style="min-width: 250px;">Description</th>
-                            <th class="text-center">Products</th>
-                            <th class="text-end pe-3" style="min-width: 160px;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (!empty($categories)): ?>
-                            <?php foreach ($categories as $category): ?>
-                            <tr>
-                                <td class="ps-3">
-                                    <div class="d-flex align-items-center">
-                                        <div class="icon-box bg-primary bg-opacity-10 rounded-2 p-2 me-3">
-                                            <i class="fas fa-tag text-primary"></i>
-                                        </div>
-                                        <div>
-                                            <span class="fw-semibold"><?= e($category['name']) ?></span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="d-none d-md-table-cell text-muted">
-                                    <?= e($category['description'] ?? '-') ?>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-light text-dark fs-6 px-3 py-2">
-                                        <?= (int)($category['product_count'] ?? 0) ?>
-                                    </span>
-                                </td>
-                                <td class="text-end pe-3">
-                                    <div class="btn-group" role="group">
-                                        <a href="<?= url("categories/edit/{$category['id']}") ?>"
-                                           class="btn btn-sm btn-outline-primary"
-                                           style="min-height: 44px; min-width: 44px;"
-                                           title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                            <span class="d-none d-lg-inline ms-1">Edit</span>
-                                        </a>
-                                        <form action="<?= url("categories/delete/{$category['id']}") ?>"
-                                              method="POST" class="d-inline"
-                                              onsubmit="return confirm('Are you sure you want to delete this category?')">
-                                            <?= csrf_field() ?>
-                                            <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                    style="min-height: 44px; min-width: 44px;"
-                                                    title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                                <span class="d-none d-lg-inline ms-1">Delete</span>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="4" class="text-center py-5 text-muted">
-                                    <i class="fas fa-tags fa-3x mb-3 d-block opacity-50"></i>
-                                    <p class="mb-1">No categories found</p>
-                                    <small>Create your first category to get started</small>
-                                </td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        <a href="<?= url('categories/create') ?>" class="btn btn-primary"><i class="fas fa-plus"></i>Add Category</a>
     </div>
 </div>
 
-<style>
-    .icon-box {
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-    .btn-group .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-</style>
+<div id="viewContainer">
+    <div class="view-list">
+        <div class="card"><div class="table-responsive">
+            <table class="table"><thead><tr><th>Name</th><th>Description</th><th class="text-center">Products</th><th class="text-end">Actions</th></tr></thead>
+            <tbody>
+                <?php if (!empty($categories)): foreach ($categories as $cat): ?>
+                <tr><td class="fw-bold"><?= e($cat['name']) ?></td><td class="text-muted"><?= e($cat['description'] ?? '—') ?></td><td class="text-center"><span class="badge badge-primary"><?= $cat['product_count'] ?? 0 ?></span></td>
+                <td><div class="btn-group-actions justify-content-end"><a href="<?= url('categories/edit/' . $cat['id']) ?>" class="btn btn-sm btn-outline"><i class="fas fa-edit"></i></a><form action="<?= url('categories/delete/' . $cat['id']) ?>" method="POST" onsubmit="return confirm('Delete this category?')"><?= csrf_field() ?><button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button></form></div></td></tr>
+                <?php endforeach; else: ?>
+                <tr><td colspan="4"><div class="empty-state"><i class="fas fa-tags"></i><h5>No categories</h5></div></td></tr>
+                <?php endif; ?>
+            </tbody></table>
+        </div></div>
+    </div>
+    <div class="view-grid">
+        <?php if (!empty($categories)): foreach ($categories as $cat): ?>
+        <div class="grid-card"><h5><?= e($cat['name']) ?></h5><p><?= e($cat['description'] ?? 'No description') ?></p>
+            <div class="grid-meta"><span class="badge badge-primary"><?= $cat['product_count'] ?? 0 ?> products</span></div>
+            <div class="grid-actions"><a href="<?= url('categories/edit/' . $cat['id']) ?>" class="btn btn-sm btn-outline"><i class="fas fa-edit"></i>Edit</a><form action="<?= url('categories/delete/' . $cat['id']) ?>" method="POST" onsubmit="return confirm('Delete?')"><?= csrf_field() ?><button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button></form></div>
+        </div>
+        <?php endforeach; else: ?>
+        <div class="empty-state" style="grid-column:1/-1;"><i class="fas fa-tags"></i><h5>No categories</h5></div>
+        <?php endif; ?>
+    </div>
+</div>

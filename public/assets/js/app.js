@@ -449,7 +449,45 @@
         initSidebar();
         initAjaxForms();
         initDeleteButtons();
+        initViewToggle();
     });
+
+    // ========================================
+    // View Toggle (Grid/List)
+    // ========================================
+    function initViewToggle() {
+        var toggles = document.querySelectorAll('.view-toggle-btn');
+        for (var i = 0; i < toggles.length; i++) {
+            toggles[i].addEventListener('click', function() {
+                var view = this.getAttribute('data-view');
+                var container = document.getElementById(this.getAttribute('data-container') || 'viewContainer');
+                if (!container) return;
+
+                // Update active button in same group
+                var siblings = this.parentElement.querySelectorAll('.view-toggle-btn');
+                for (var j = 0; j < siblings.length; j++) siblings[j].classList.remove('active');
+                this.classList.add('active');
+
+                // Switch view
+                if (view === 'grid') {
+                    container.classList.add('view-grid');
+                    container.classList.remove('view-list');
+                } else {
+                    container.classList.remove('view-grid');
+                    container.classList.add('view-list');
+                }
+
+                localStorage.setItem('pos-view-mode', view);
+            });
+        }
+
+        // Restore saved preference
+        var saved = localStorage.getItem('pos-view-mode');
+        if (saved) {
+            var btn = document.querySelector('.view-toggle-btn[data-view="' + saved + '"]');
+            if (btn) btn.click();
+        }
+    }
 
     // ========================================
     // Expose to global scope

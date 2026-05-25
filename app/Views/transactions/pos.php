@@ -1,231 +1,96 @@
-<div class="pos-wrapper">
-    <div class="row g-0 vh-100">
-        <!-- Left: Product Selection Panel -->
-        <div class="col-12 col-lg-7 col-xl-8 pos-product-panel">
-            <div class="d-flex flex-column h-100">
-                <!-- Search Bar -->
-                <div class="p-3 border-bottom bg-white">
-                    <div class="toolbar mb-0">
-                        <div class="position-relative flex-grow-1">
-                            <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-                            <input type="text" class="form-control ps-5" id="productSearch"
-                                   placeholder="Search products or scan barcode..." autocomplete="off">
-                            <button class="btn btn-ghost btn-sm position-absolute top-50 end-0 translate-middle-y me-1"
-                                    type="button" id="clearSearch" style="display: none;">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Category Tabs -->
-                <div class="category-tabs p-3 border-bottom bg-white">
-                    <div class="d-flex gap-2 overflow-auto pb-1" style="white-space: nowrap;">
-                        <button class="btn btn-sm btn-primary category-tab active" data-category="">
-                            <i class="fas fa-th me-1"></i>All
-                        </button>
-                        <?php foreach ($categories as $cat): ?>
-                        <button class="btn btn-sm btn-outline category-tab"
-                                data-category="<?= $cat['id'] ?>">
-                            <?= e($cat['name']) ?>
-                        </button>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- Product Grid -->
-                <div class="product-grid flex-grow-1 overflow-auto p-3" id="productGrid">
-                    <div class="row g-2" id="productsContainer"></div>
-                    <div id="loadingIndicator" class="text-center py-5" style="display: none;">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                    <div id="emptyState" class="empty-state" style="display: none;">
-                        <i class="fas fa-box-open"></i>
-                        <h5>No products found</h5>
-                        <p>Try a different search or category.</p>
-                    </div>
-                </div>
+<div class="pos-layout">
+    <!-- Products Panel -->
+    <div class="pos-products">
+        <div class="pos-search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" id="productSearch" placeholder="Search products..." autocomplete="off">
+            <button class="pos-clear" id="clearSearch" style="display:none;"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="pos-categories">
+            <button class="pos-cat active" data-category=""><i class="fas fa-th"></i>All</button>
+            <?php foreach ($categories as $cat): ?>
+            <button class="pos-cat" data-category="<?= $cat['id'] ?>"><?= e($cat['name']) ?></button>
+            <?php endforeach; ?>
+        </div>
+        <div class="pos-grid-wrap" id="productGrid">
+            <div id="productsContainer"></div>
+            <div id="loadingIndicator" class="pos-loading" style="display:none;"><div class="spinner"></div></div>
+            <div id="emptyState" class="empty-state" style="display:none;">
+                <i class="fas fa-box-open"></i><h5>No products found</h5><p>Try a different search</p>
             </div>
         </div>
+    </div>
 
-        <!-- Right: Cart Panel -->
-        <div class="col-12 col-lg-5 col-xl-4 pos-cart-panel border-start">
-            <div class="d-flex flex-column h-100">
-                <!-- Cart Header -->
-                <div class="p-3 border-bottom bg-white d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 fw-bold">
-                        <i class="fas fa-shopping-cart me-2 text-primary"></i>Current Sale
-                    </h6>
-                    <button class="btn btn-sm btn-outline-danger" id="clearCartBtn" type="button">
-                        <i class="fas fa-trash me-1"></i>Clear
-                    </button>
-                </div>
-
-                <!-- Cart Items -->
-                <div class="cart-items flex-grow-1 overflow-auto p-2" id="cartItems">
-                    <div class="empty-state py-4" id="emptyCart">
-                        <i class="fas fa-cart-plus"></i>
-                        <h5>Cart is empty</h5>
-                        <p>Tap a product to add it</p>
-                    </div>
-                </div>
-
-                <!-- Cart Footer -->
-                <div class="cart-footer border-top bg-white p-3">
-                    <!-- Subtotal -->
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Subtotal</span>
-                        <span class="fw-bold" id="subtotalDisplay">Rp 0</span>
-                    </div>
-                    <!-- Tax -->
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Tax (<span id="taxRateDisplay">0</span>%)</span>
-                        <span class="fw-semibold" id="taxDisplay">Rp 0</span>
-                    </div>
-
-                    <!-- Discount Row -->
-                    <div class="d-flex gap-2 mb-2">
-                        <div class="flex-grow-1">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text">Discount</span>
-                                <input type="number" class="form-control" id="discountValue" value="0"
-                                       min="0" step="1" placeholder="0">
-                            </div>
-                        </div>
-                        <div>
-                            <select class="form-select form-select-sm" id="discountType" style="min-height: 44px;">
-                                <option value="fixed">Rp</option>
-                                <option value="percentage">%</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="d-flex justify-content-between mb-3">
-                        <span class="text-muted">Discount</span>
-                        <span class="text-danger fw-bold" id="discountDisplay">- Rp 0</span>
-                    </div>
-
-                    <!-- Total -->
-                    <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded mb-3">
-                        <span class="h6 mb-0 fw-bold">Total</span>
-                        <span class="h5 mb-0 fw-bold text-primary" id="totalDisplay">Rp 0</span>
-                    </div>
-
-                    <!-- Pay Button -->
-                    <button class="btn btn-success btn-lg btn-block" id="payBtn" type="button" disabled>
-                        <i class="fas fa-cash-register me-2"></i>Pay Now
-                    </button>
-                </div>
+    <!-- Cart Panel -->
+    <div class="pos-cart">
+        <div class="pos-cart-header">
+            <span><i class="fas fa-shopping-cart"></i> Current Sale</span>
+            <button class="btn btn-sm btn-ghost text-danger" id="clearCartBtn"><i class="fas fa-trash"></i></button>
+        </div>
+        <div class="pos-cart-body" id="cartItems">
+            <div class="empty-state" id="emptyCart">
+                <i class="fas fa-cart-plus"></i><h5>Cart is empty</h5><p>Tap a product to add</p>
             </div>
+        </div>
+        <div class="pos-cart-footer">
+            <div class="pos-row"><span>Subtotal</span><span class="fw-bold" id="subtotalDisplay">Rp 0</span></div>
+            <div class="pos-row"><span>Tax (<span id="taxRateDisplay">0</span>%)</span><span id="taxDisplay">Rp 0</span></div>
+            <div class="pos-disc-row">
+                <input type="number" id="discountValue" value="0" min="0" step="1" placeholder="0">
+                <select id="discountType"><option value="fixed">Rp</option><option value="percentage">%</option></select>
+            </div>
+            <div class="pos-row"><span>Discount</span><span class="text-danger fw-bold" id="discountDisplay">- Rp 0</span></div>
+            <div class="pos-total"><span>Total</span><span id="totalDisplay">Rp 0</span></div>
+            <button class="btn btn-success btn-lg" id="payBtn" disabled><i class="fas fa-cash-register"></i> Pay Now</button>
         </div>
     </div>
 </div>
 
 <!-- Payment Modal -->
-<div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="paymentModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">
-                    <i class="fas fa-wallet me-2 text-primary"></i>Payment
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
+            <div class="modal-header"><h5 class="modal-title fw-bold"><i class="fas fa-wallet text-primary me-2"></i>Payment</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
-                <!-- Total Amount -->
-                <div class="text-center mb-4 p-3 bg-light rounded">
-                    <small class="text-muted d-block">Total Amount</small>
-                    <h2 class="fw-bold text-primary mb-0" id="modalTotal">Rp 0</h2>
-                </div>
-
-                <!-- Payment Method Selection -->
-                <div class="mb-4">
+                <div class="pos-modal-total"><small>Total</small><h2 id="modalTotal">Rp 0</h2></div>
+                <div class="mb-3">
                     <label class="form-label fw-bold">Payment Method</label>
-                    <div class="row g-2">
-                        <div class="col-4">
-                            <input type="radio" class="btn-check" name="payment_method"
-                                   id="payCash" value="cash" checked>
-                            <label class="btn btn-outline-success btn-block" for="payCash"
-                                   style="min-height: 80px;">
-                                <i class="fas fa-money-bill-wave fa-lg mb-1 d-block"></i>
-                                <small>Cash</small>
-                            </label>
-                        </div>
-                        <div class="col-4">
-                            <input type="radio" class="btn-check" name="payment_method"
-                                   id="payCard" value="card">
-                            <label class="btn btn-outline-primary btn-block" for="payCard"
-                                   style="min-height: 80px;">
-                                <i class="fas fa-credit-card fa-lg mb-1 d-block"></i>
-                                <small>Card</small>
-                            </label>
-                        </div>
-                        <div class="col-4">
-                            <input type="radio" class="btn-check" name="payment_method"
-                                   id="payQris" value="qris">
-                            <label class="btn btn-outline-info btn-block" for="payQris"
-                                   style="min-height: 80px;">
-                                <i class="fas fa-qrcode fa-lg mb-1 d-block"></i>
-                                <small>QRIS</small>
-                            </label>
-                        </div>
+                    <div class="pos-pay-methods">
+                        <input type="radio" class="btn-check" name="payment_method" id="payCash" value="cash" checked>
+                        <label class="pos-pay-label btn btn-outline-success" for="payCash"><i class="fas fa-money-bill-wave"></i>Cash</label>
+                        <input type="radio" class="btn-check" name="payment_method" id="payCard" value="card">
+                        <label class="pos-pay-label btn btn-outline-primary" for="payCard"><i class="fas fa-credit-card"></i>Card</label>
+                        <input type="radio" class="btn-check" name="payment_method" id="payQris" value="qris">
+                        <label class="pos-pay-label btn btn-outline-info" for="payQris"><i class="fas fa-qrcode"></i>QRIS</label>
                     </div>
                 </div>
-
-                <!-- Cash Payment Section -->
                 <div id="cashPaymentSection">
-                    <div class="mb-3">
-                        <label for="amountPaid" class="form-label fw-bold">Amount Paid</label>
-                        <input type="number" class="form-control form-control-lg" id="amountPaid"
-                               placeholder="Enter amount" min="0" step="1">
-                    </div>
-
-                    <!-- Quick Cash Buttons -->
-                    <div class="row g-2 mb-3" id="quickCashButtons"></div>
-
-                    <!-- Change Display -->
-                    <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
-                        <span class="fw-bold">Change</span>
-                        <span class="h5 mb-0 fw-bold text-success" id="changeDisplay">Rp 0</span>
-                    </div>
+                    <label class="form-label fw-bold">Amount Paid</label>
+                    <input type="number" class="form-control form-control-lg" id="amountPaid" placeholder="Enter amount" min="0" step="1">
+                    <div class="pos-quick-cash" id="quickCashButtons"></div>
+                    <div class="pos-change"><span>Change</span><span id="changeDisplay">Rp 0</span></div>
                 </div>
-
-                <!-- Error Alert -->
-                <div class="alert alert-danger mt-3" id="paymentError" style="display: none;">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <span id="paymentErrorText"></span>
-                </div>
+                <div class="alert alert-danger mt-3" id="paymentError" style="display:none;"><i class="fas fa-exclamation-circle"></i><span id="paymentErrorText"></span></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline" data-bs-dismiss="modal">
-                    Cancel
-                </button>
-                <button type="button" class="btn btn-success flex-grow-1" id="confirmPayBtn">
-                    <i class="fas fa-check me-2"></i>Confirm Payment
-                </button>
+                <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success flex-grow-1" id="confirmPayBtn"><i class="fas fa-check me-2"></i>Confirm</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Success Modal -->
-<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="successModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content text-center">
             <div class="modal-body py-5">
-                <div class="mb-3">
-                    <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
-                </div>
-                <h4 class="fw-bold mb-1">Transaction Complete!</h4>
+                <i class="fas fa-check-circle text-success" style="font-size:4rem;"></i>
+                <h4 class="fw-bold mb-1 mt-3">Transaction Complete!</h4>
                 <p class="text-muted mb-4" id="successInvoice"></p>
                 <div class="d-flex gap-2 justify-content-center">
-                    <button class="btn btn-outline" id="printReceiptBtn" type="button">
-                        <i class="fas fa-print me-1"></i>Print
-                    </button>
-                    <button class="btn btn-success" type="button" id="newSaleBtn">
-                        <i class="fas fa-plus me-1"></i>New Sale
-                    </button>
+                    <button class="btn btn-outline" id="printReceiptBtn"><i class="fas fa-print me-1"></i>Print</button>
+                    <button class="btn btn-success" id="newSaleBtn"><i class="fas fa-plus me-1"></i>New Sale</button>
                 </div>
             </div>
         </div>
@@ -233,184 +98,115 @@
 </div>
 
 <style>
-    .pos-wrapper { margin: -1rem; }
-    .pos-product-panel, .pos-cart-panel { overflow: hidden; }
-    .pos-cart-panel { background: var(--gray-50, #f9fafb); }
+    .pos-layout { display:flex; height:calc(100vh - var(--topbar-height) - 1px); gap:0; overflow:hidden; }
+    .pos-products { flex:1; min-width:0; display:flex; flex-direction:column; background:var(--gray-50); }
+    .pos-cart { width:360px; min-width:320px; background:white; border-left:1px solid var(--gray-200); display:flex; flex-direction:column; flex-shrink:0; }
 
-    .product-grid .product-card {
-        cursor: pointer;
-        transition: var(--transition);
-        min-height: 110px;
-        border: 2px solid var(--gray-200);
-        user-select: none;
-    }
-    .product-grid .product-card:active {
-        transform: scale(0.96);
-    }
-    .product-grid .product-card:hover {
-        border-color: var(--primary);
-        box-shadow: var(--shadow);
-    }
-    .product-grid .product-card.out-of-stock {
-        opacity: 0.5;
-        pointer-events: none;
-        cursor: not-allowed;
-    }
+    .pos-search-bar { position:relative; padding:12px 16px; background:white; border-bottom:1px solid var(--gray-200); }
+    .pos-search-bar i { position:absolute; left:26px; top:50%; transform:translateY(-50%); color:var(--gray-400); }
+    .pos-search-bar input { width:100%; padding:10px 40px 10px 40px; border-radius:var(--radius); min-height:44px; }
+    .pos-clear { position:absolute; right:22px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--gray-400); cursor:pointer; padding:4px 8px; min-height:36px; }
 
-    .cart-items .cart-item {
-        background: white;
-        border-radius: var(--radius);
-        padding: 10px 12px;
-        margin-bottom: 6px;
-        border: 1px solid var(--gray-100);
-    }
+    .pos-categories { display:flex; gap:8px; padding:10px 16px; background:white; border-bottom:1px solid var(--gray-200); overflow-x:auto; }
+    .pos-cat { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border:1.5px solid var(--gray-300); border-radius:var(--radius-xl); background:white; font-size:13px; font-weight:500; cursor:pointer; min-height:40px; white-space:nowrap; transition:var(--transition); }
+    .pos-cat.active { background:var(--primary); border-color:var(--primary); color:white; box-shadow:var(--shadow-primary); }
 
-    .qty-btn {
-        width: 36px;
-        height: 36px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: var(--radius-sm);
-        font-size: 14px;
-        padding: 0;
-    }
+    .pos-grid-wrap { flex:1; overflow-y:auto; padding:12px; }
+    #productsContainer { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; }
 
-    .category-tabs .category-tab {
-        min-height: 44px;
-        border-radius: var(--radius-xl);
-        padding: 8px 18px;
-        font-weight: 500;
-    }
-    .category-tabs .category-tab.active {
-        background-color: var(--primary);
-        border-color: var(--primary);
-        color: #fff;
-        box-shadow: var(--shadow-primary);
+    .product-card { cursor:pointer; transition:var(--transition); border:2px solid var(--gray-200); border-radius:var(--radius); padding:12px; text-align:center; min-height:110px; background:white; user-select:none; }
+    .product-card:hover { border-color:var(--primary); box-shadow:var(--shadow); transform:translateY(-2px); }
+    .product-card:active { transform:scale(0.97); }
+    .product-card.out-of-stock { opacity:0.4; pointer-events:none; }
+    .product-card .card-body { padding:0 !important; }
+
+    .pos-cart-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--gray-100); font-weight:600; }
+    .pos-cart-header i { color:var(--primary); margin-right:8px; }
+    .pos-cart-body { flex:1; overflow-y:auto; padding:8px; }
+    .pos-cart-item { background:var(--gray-50); border:1px solid var(--gray-100); border-radius:var(--radius); padding:10px 12px; margin-bottom:6px; }
+    .pos-cart-footer { padding:16px; border-top:1px solid var(--gray-200); background:white; }
+    .pos-row { display:flex; justify-content:space-between; padding:4px 0; font-size:14px; }
+    .pos-disc-row { display:flex; gap:8px; margin:8px 0; }
+    .pos-disc-row input { flex:1; min-height:40px; }
+    .pos-disc-row select { min-height:40px; border-radius:var(--radius); }
+    .pos-total { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:var(--primary-bg); border-radius:var(--radius); margin:12px 0; }
+    .pos-total span:last-child { font-size:22px; font-weight:800; color:var(--primary); }
+    .pos-cart-footer .btn { width:100%; }
+
+    .pos-modal-total { text-align:center; padding:16px; background:var(--gray-50); border-radius:var(--radius); margin-bottom:20px; }
+    .pos-modal-total small { color:var(--gray-500); }
+    .pos-modal-total h2 { color:var(--primary); margin:0; }
+    .pos-pay-methods { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .pos-pay-label { min-height:70px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border-radius:var(--radius); }
+    .pos-pay-label i { font-size:20px; }
+    .pos-quick-cash { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:12px 0; }
+    .quick-cash-btn { min-height:44px; font-weight:600; border-radius:var(--radius); }
+    .pos-change { display:flex; justify-content:space-between; padding:12px 16px; background:var(--success-light); border-radius:var(--radius); }
+    .pos-change span:last-child { font-size:20px; font-weight:700; color:#065f46; }
+
+    /* Tablet Landscape */
+    @media (max-width:1024px) {
+        .pos-cart { width:300px; min-width:280px; }
+        #productsContainer { grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; }
     }
 
-    .quick-cash-btn {
-        min-height: 48px;
-        font-weight: 600;
-    }
-
-    @media (max-width: 991.98px) {
-        .pos-wrapper { height: auto; }
-        .pos-product-panel { height: 50vh; }
-        .pos-cart-panel { height: 50vh; border-top: 2px solid var(--gray-200); }
+    /* Tablet Portrait */
+    @media (max-width:834px) {
+        .pos-layout { flex-direction:column; height:auto; }
+        .pos-products { height:55vh; min-height:280px; }
+        .pos-cart { width:100%; max-width:none; min-width:0; height:45vh; min-height:250px; border-left:none; border-top:2px solid var(--gray-200); }
+        #productsContainer { grid-template-columns:repeat(auto-fill,minmax(95px,1fr)); gap:8px; }
     }
 </style>
 
 <script>
 (function() {
     'use strict';
-
     var taxRate = parseFloat('<?= setting("tax_rate", 0) ?>') || 0;
     var items = [];
     var currentCategory = '';
     var searchTimeout = null;
 
-    // ===== Utility Functions =====
-    function formatRupiah(amount) {
-        return 'Rp ' + Math.round(amount).toLocaleString('id-ID');
+    function formatRupiah(a) { return 'Rp ' + Math.round(a).toLocaleString('id-ID'); }
+    function escapeHtml(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+    function showToast(msg, type) {
+        var c = document.querySelector('.toast-container');
+        if (!c) { c = document.createElement('div'); c.className = 'toast-container'; document.body.appendChild(c); }
+        var t = document.createElement('div');
+        t.className = 'toast toast-' + (type || 'success');
+        var ic = type === 'error' ? 'exclamation-circle text-danger' : type === 'warning' ? 'exclamation-triangle text-warning' : 'check-circle text-success';
+        t.innerHTML = '<i class="fas fa-' + ic + '"></i><span>' + msg + '</span>';
+        c.appendChild(t);
+        setTimeout(function() { t.classList.add('removing'); setTimeout(function() { t.remove(); }, 300); }, 2500);
     }
 
-    function escapeHtml(text) {
-        var div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    function showToast(message, type) {
-        var container = document.querySelector('.toast-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.className = 'toast-container';
-            document.body.appendChild(container);
-        }
-        var toast = document.createElement('div');
-        toast.className = 'toast toast-' + (type || 'success');
-        var iconClass = type === 'error' ? 'exclamation-circle text-danger' : 'check-circle text-success';
-        toast.innerHTML = '<i class="fas fa-' + iconClass + '"></i><span>' + message + '</span>';
-        container.appendChild(toast);
-        setTimeout(function() {
-            toast.classList.add('removing');
-            setTimeout(function() { toast.remove(); }, 300);
-        }, 2500);
-    }
-
-    // ===== Cart Calculations =====
-    function getSubtotal() {
-        var sum = 0;
-        for (var i = 0; i < items.length; i++) {
-            sum += items[i].subtotal;
-        }
-        return sum;
-    }
-
-    function getTax() {
-        return getSubtotal() * (taxRate / 100);
-    }
-
+    function getSubtotal() { var s = 0; for (var i = 0; i < items.length; i++) s += items[i].subtotal; return s; }
+    function getTax() { return getSubtotal() * (taxRate / 100); }
     function getDiscount() {
-        var discountEl = document.getElementById('discountValue');
-        var typeEl = document.getElementById('discountType');
-        if (!discountEl || !typeEl) return 0;
-        var value = parseFloat(discountEl.value) || 0;
-        var type = typeEl.value;
-        if (type === 'percentage') {
-            return (getSubtotal() + getTax()) * (value / 100);
-        }
-        return value;
+        var v = parseFloat(document.getElementById('discountValue').value) || 0;
+        var t = document.getElementById('discountType').value;
+        return t === 'percentage' ? (getSubtotal() + getTax()) * (v / 100) : v;
     }
+    function getTotal() { return getSubtotal() + getTax() - getDiscount(); }
 
-    function getTotal() {
-        return getSubtotal() + getTax() - getDiscount();
-    }
-
-    // ===== Cart Actions =====
     function addToCart(id, name, price, stock) {
-        id = parseInt(id);
-        price = parseFloat(price);
-        stock = parseInt(stock);
-
+        id = parseInt(id); price = parseFloat(price); stock = parseInt(stock);
         var existing = null;
-        for (var i = 0; i < items.length; i++) {
-            if (items[i].product_id === id) {
-                existing = items[i];
-                break;
-            }
-        }
-
+        for (var i = 0; i < items.length; i++) { if (items[i].product_id === id) { existing = items[i]; break; } }
         if (existing) {
-            if (existing.quantity < stock) {
-                existing.quantity++;
-                existing.subtotal = existing.quantity * existing.price;
-            } else {
-                showToast('Max stock reached for ' + name, 'warning');
-                return;
-            }
+            if (existing.quantity < stock) { existing.quantity++; existing.subtotal = existing.quantity * existing.price; }
+            else { showToast('Max stock: ' + name, 'warning'); return; }
         } else {
-            items.push({
-                product_id: id,
-                name: name,
-                price: price,
-                quantity: 1,
-                stock: stock,
-                subtotal: price
-            });
+            items.push({ product_id: id, name: name, price: price, quantity: 1, stock: stock, subtotal: price });
         }
         renderCart();
-        showToast(name + ' added to cart', 'success');
+        showToast(name + ' added', 'success');
     }
 
     function removeFromCart(id) {
         id = parseInt(id);
-        for (var i = items.length - 1; i >= 0; i--) {
-            if (items[i].product_id === id) {
-                items.splice(i, 1);
-            }
-        }
+        for (var i = items.length - 1; i >= 0; i--) { if (items[i].product_id === id) items.splice(i, 1); }
         renderCart();
     }
 
@@ -418,430 +214,163 @@
         id = parseInt(id);
         for (var i = 0; i < items.length; i++) {
             if (items[i].product_id === id) {
-                var newQty = items[i].quantity + delta;
-                if (newQty > 0 && newQty <= items[i].stock) {
-                    items[i].quantity = newQty;
-                    items[i].subtotal = items[i].quantity * items[i].price;
-                } else if (newQty <= 0) {
-                    removeFromCart(id);
-                    return;
-                } else if (newQty > items[i].stock) {
-                    showToast('Max stock reached', 'warning');
-                }
+                var nq = items[i].quantity + delta;
+                if (nq > 0 && nq <= items[i].stock) { items[i].quantity = nq; items[i].subtotal = items[i].quantity * items[i].price; }
+                else if (nq <= 0) { removeFromCart(id); return; }
+                else { showToast('Max stock reached', 'warning'); }
                 break;
             }
         }
         renderCart();
     }
 
-    function clearCart() {
-        if (items.length === 0) return;
-        if (confirm('Clear all items from cart?')) {
-            items = [];
-            renderCart();
-        }
-    }
-
-    // ===== Render Cart =====
     function renderCart() {
-        var container = document.getElementById('cartItems');
-        var emptyCart = document.getElementById('emptyCart');
-        var payBtn = document.getElementById('payBtn');
-
-        if (!container) return;
-
-        // Update totals
-        var subtotalEl = document.getElementById('subtotalDisplay');
-        var taxRateEl = document.getElementById('taxRateDisplay');
-        var taxEl = document.getElementById('taxDisplay');
-        var discountEl = document.getElementById('discountDisplay');
-        var totalEl = document.getElementById('totalDisplay');
-
-        if (subtotalEl) subtotalEl.textContent = formatRupiah(getSubtotal());
-        if (taxRateEl) taxRateEl.textContent = taxRate;
-        if (taxEl) taxEl.textContent = formatRupiah(getTax());
-        if (discountEl) discountEl.textContent = '- ' + formatRupiah(getDiscount());
-        if (totalEl) totalEl.textContent = formatRupiah(getTotal());
+        var c = document.getElementById('cartItems'), e = document.getElementById('emptyCart'), p = document.getElementById('payBtn');
+        if (!c) return;
+        var se = document.getElementById('subtotalDisplay'), te = document.getElementById('taxRateDisplay'),
+            tx = document.getElementById('taxDisplay'), de = document.getElementById('discountDisplay'), tl = document.getElementById('totalDisplay');
+        if (se) se.textContent = formatRupiah(getSubtotal());
+        if (te) te.textContent = taxRate;
+        if (tx) tx.textContent = formatRupiah(getTax());
+        if (de) de.textContent = '- ' + formatRupiah(getDiscount());
+        if (tl) tl.textContent = formatRupiah(getTotal());
 
         if (items.length === 0) {
-            container.innerHTML = '';
-            if (emptyCart) {
-                container.appendChild(emptyCart);
-                emptyCart.style.display = '';
-            }
-            if (payBtn) payBtn.disabled = true;
-            return;
+            c.innerHTML = ''; if (e) { c.appendChild(e); e.style.display = ''; }
+            if (p) p.disabled = true; return;
         }
+        if (e) e.style.display = 'none';
+        if (p) p.disabled = false;
 
-        if (emptyCart) emptyCart.style.display = 'none';
-        if (payBtn) payBtn.disabled = false;
-
-        var html = '';
+        var h = '';
         for (var i = 0; i < items.length; i++) {
-            var item = items[i];
-            var eName = escapeHtml(item.name);
-            var canAddMore = item.quantity < item.stock;
-
-            html += '<div class="cart-item" data-id="' + item.product_id + '">';
-            html += '  <div class="d-flex justify-content-between align-items-start">';
-            html += '    <div class="flex-grow-1 me-2">';
-            html += '      <div class="fw-semibold small">' + eName + '</div>';
-            html += '      <div class="text-muted small">' + formatRupiah(item.price) + ' each</div>';
-            html += '    </div>';
-            html += '    <button class="btn btn-sm btn-outline-danger cart-remove p-1" type="button" data-id="' + item.product_id + '" style="min-width:32px;min-height:32px;">';
-            html += '      <i class="fas fa-times"></i>';
-            html += '    </button>';
-            html += '  </div>';
-            html += '  <div class="d-flex justify-content-between align-items-center mt-2">';
-            html += '    <div class="d-flex align-items-center gap-1">';
-            html += '      <button class="btn btn-sm btn-outline qty-btn qty-minus" type="button" data-id="' + item.product_id + '" style="width:36px;height:36px;">';
-            html += '        <i class="fas fa-minus"></i>';
-            html += '      </button>';
-            html += '      <span class="fw-bold mx-2" style="min-width:24px;text-align:center;">' + item.quantity + '</span>';
-            html += '      <button class="btn btn-sm btn-outline qty-btn qty-plus" type="button" data-id="' + item.product_id + '" style="width:36px;height:36px;"' + (canAddMore ? '' : ' disabled') + '>';
-            html += '        <i class="fas fa-plus"></i>';
-            html += '      </button>';
-            html += '    </div>';
-            html += '    <span class="fw-bold">' + formatRupiah(item.subtotal) + '</span>';
-            html += '  </div>';
-            html += '</div>';
+            var it = items[i], en = escapeHtml(it.name), ok = it.quantity < it.stock;
+            h += '<div class="pos-cart-item">';
+            h += '<div class="d-flex justify-content-between align-items-start"><div class="flex-grow-1 me-2"><div class="fw-semibold small">' + en + '</div><div class="text-muted small">' + formatRupiah(it.price) + ' each</div></div>';
+            h += '<button class="btn btn-sm btn-ghost text-danger p-0" onclick="window._posRemove(' + it.product_id + ')" style="min-width:32px;min-height:32px;"><i class="fas fa-times"></i></button></div>';
+            h += '<div class="d-flex justify-content-between align-items-center mt-2"><div class="d-flex align-items-center gap-1">';
+            h += '<button class="btn btn-sm btn-outline" style="width:32px;height:32px;padding:0;" onclick="window._posQty(' + it.product_id + ',-1)"><i class="fas fa-minus"></i></button>';
+            h += '<span class="fw-bold mx-2" style="min-width:20px;text-align:center;">' + it.quantity + '</span>';
+            h += '<button class="btn btn-sm btn-outline" style="width:32px;height:32px;padding:0;"' + (ok ? '' : ' disabled') + ' onclick="window._posQty(' + it.product_id + ',1)"><i class="fas fa-plus"></i></button>';
+            h += '</div><span class="fw-bold">' + formatRupiah(it.subtotal) + '</span></div></div>';
         }
-        container.innerHTML = html;
+        c.innerHTML = h;
     }
 
-    // ===== Load Products =====
-    function loadProducts(keyword, categoryId) {
-        keyword = keyword || '';
-        categoryId = categoryId || '';
+    window._posRemove = removeFromCart;
+    window._posQty = updateQty;
 
-        var container = document.getElementById('productsContainer');
-        var loading = document.getElementById('loadingIndicator');
-        var empty = document.getElementById('emptyState');
-
-        if (!container) return;
-
-        container.innerHTML = '';
-        if (loading) loading.style.display = '';
-        if (empty) empty.style.display = 'none';
-
-        var params = new URLSearchParams();
-        if (keyword) params.set('q', keyword);
-        if (categoryId) params.set('category_id', categoryId);
-
-        var url = '<?= url('api/products/search') ?>?' + params.toString();
-
-        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function(res) { return res.json(); })
+    function loadProducts(kw, cat) {
+        kw = kw || ''; cat = cat || '';
+        var c = document.getElementById('productsContainer'), l = document.getElementById('loadingIndicator'), em = document.getElementById('emptyState');
+        if (!c) return;
+        c.innerHTML = ''; if (l) l.style.display = ''; if (em) em.style.display = 'none';
+        var p = new URLSearchParams();
+        if (kw) p.set('q', kw); if (cat) p.set('category_id', cat);
+        fetch('<?= url('api/products/search') ?>?' + p.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { return r.json(); })
             .then(function(data) {
-                if (loading) loading.style.display = 'none';
-                if (!data.success || !data.products || data.products.length === 0) {
-                    if (empty) empty.style.display = '';
-                    return;
-                }
-
-                var html = '';
+                if (l) l.style.display = 'none';
+                if (!data.success || !data.products || data.products.length === 0) { if (em) em.style.display = ''; return; }
+                var h = '';
                 for (var i = 0; i < data.products.length; i++) {
-                    var p = data.products[i];
-                    var outOfStock = parseInt(p.stock, 10) <= 0;
-                    var eName = escapeHtml(p.name);
-                    var pId = parseInt(p.id, 10);
-                    var pPrice = parseFloat(p.price);
-                    var pStock = parseInt(p.stock, 10);
-
-                    html += '<div class="col-6 col-md-4 col-xl-3">';
-                    html += '  <div class="card product-card h-100' + (outOfStock ? ' out-of-stock' : '') + '"';
-                    html += '       data-product-id="' + pId + '"';
-                    html += '       data-product-name="' + eName.replace(/"/g, '&quot;') + '"';
-                    html += '       data-product-price="' + pPrice + '"';
-                    html += '       data-product-stock="' + pStock + '"';
-                    html += '       style="cursor:' + (outOfStock ? 'not-allowed' : 'pointer') + ';">';
-                    html += '    <div class="card-body p-2 text-center">';
-                    if (p.image) {
-                        html += '      <img src="<?= url('uploads') ?>/' + p.image + '" class="img-fluid rounded mb-2" style="max-height:60px;object-fit:cover;">';
-                    } else {
-                        html += '      <div class="mb-2"><i class="fas fa-box fa-2x text-muted"></i></div>';
-                    }
-                    html += '      <div class="fw-semibold small text-truncate" title="' + eName + '">' + eName + '</div>';
-                    html += '      <div class="text-primary fw-bold small">' + formatRupiah(pPrice) + '</div>';
-                    html += '      <span class="badge badge-' + (outOfStock ? 'danger' : 'success') + ' mt-1">' + pStock + '</span>';
-                    html += '    </div>';
-                    html += '  </div>';
-                    html += '</div>';
+                    var pr = data.products[i], oos = parseInt(pr.stock, 10) <= 0;
+                    var en = escapeHtml(pr.name), pi = parseInt(pr.id, 10), pp = parseFloat(pr.price), ps = parseInt(pr.stock, 10);
+                    h += '<div class="product-card' + (oos ? ' out-of-stock' : '') + '" onclick="window._posCart(' + pi + ',\'' + en.replace(/'/g, "\\'") + '\',' + pp + ',' + ps + ')">';
+                    if (pr.image) h += '<img src="<?= url('uploads') ?>/' + pr.image + '" style="width:100%;height:60px;object-fit:cover;border-radius:var(--radius-sm);margin-bottom:6px;">';
+                    else h += '<div style="margin-bottom:6px;"><i class="fas fa-box fa-2x text-muted"></i></div>';
+                    h += '<div class="fw-semibold small text-truncate" title="' + en + '">' + en + '</div>';
+                    h += '<div class="text-primary fw-bold" style="font-size:13px;">' + formatRupiah(pp) + '</div>';
+                    h += '<span class="badge badge-' + (oos ? 'danger' : 'success') + '" style="font-size:11px;">' + ps + '</span></div>';
                 }
-                container.innerHTML = html;
-                if (empty) empty.style.display = 'none';
+                c.innerHTML = h; if (em) em.style.display = 'none';
             })
-            .catch(function() {
-                if (loading) loading.style.display = 'none';
-                if (empty) empty.style.display = '';
-            });
+            .catch(function() { if (l) l.style.display = 'none'; if (em) em.style.display = ''; });
     }
 
-    // ===== Payment Modal =====
-    function openPaymentModal() {
+    window._posCart = addToCart;
+
+    function openPayment() {
         if (items.length === 0) return;
-        var total = getTotal();
-        var modalTotal = document.getElementById('modalTotal');
-        if (modalTotal) modalTotal.textContent = formatRupiah(total);
-        var amountPaid = document.getElementById('amountPaid');
-        if (amountPaid) amountPaid.value = '';
-        var changeDisp = document.getElementById('changeDisplay');
-        if (changeDisp) changeDisp.textContent = formatRupiah(0);
-        var payError = document.getElementById('paymentError');
-        if (payError) payError.style.display = 'none';
-
-        generateQuickCashButtons(total);
-
-        var modal = new bootstrap.Modal(document.getElementById('paymentModal'));
-        modal.show();
+        var t = getTotal();
+        var mt = document.getElementById('modalTotal'); if (mt) mt.textContent = formatRupiah(t);
+        var ap = document.getElementById('amountPaid'); if (ap) ap.value = '';
+        var cd = document.getElementById('changeDisplay'); if (cd) cd.textContent = formatRupiah(0);
+        var pe = document.getElementById('paymentError'); if (pe) pe.style.display = 'none';
+        genQuickCash(t);
+        new bootstrap.Modal(document.getElementById('paymentModal')).show();
     }
 
-    function generateQuickCashButtons(total) {
-        var container = document.getElementById('quickCashButtons');
-        if (!container) return;
-        var amounts = [];
-        var rounded = Math.ceil(total / 10000) * 10000;
-        amounts.push(rounded);
-        amounts.push(rounded + 10000);
-        amounts.push(rounded + 50000);
-        amounts.push(100000);
-        amounts.push(200000);
-        amounts = amounts.filter(function(v, i, a) { return a.indexOf(v) === i; }).sort(function(a, b) { return a - b; }).slice(0, 6);
-
-        var html = '';
-        for (var i = 0; i < amounts.length; i++) {
-            var label = amounts[i] >= 1000 ? (amounts[i] / 1000) + 'K' : amounts[i];
-            html += '<div class="col-4"><button class="btn btn-outline quick-cash-btn w-100" type="button" onclick="window._posQuickCash(' + amounts[i] + ')">' + label + '</button></div>';
+    function genQuickCash(total) {
+        var c = document.getElementById('quickCashButtons'); if (!c) return;
+        var r = Math.ceil(total / 10000) * 10000;
+        var a = [r, r + 10000, r + 50000, 100000, 200000].filter(function(v, i, s) { return s.indexOf(v) === i; }).slice(0, 6);
+        var h = '';
+        for (var i = 0; i < a.length; i++) {
+            var lb = a[i] >= 1000 ? (a[i] / 1000) + 'K' : a[i];
+            h += '<button class="btn btn-outline quick-cash-btn" onclick="window._posQc(' + a[i] + ')">' + lb + '</button>';
         }
-        container.innerHTML = html;
+        c.innerHTML = h;
     }
 
-    window._posQuickCash = function(amount) {
-        var el = document.getElementById('amountPaid');
-        if (el) {
-            el.value = amount;
-            el.dispatchEvent(new Event('input'));
-        }
-    };
+    window._posQc = function(a) { var e = document.getElementById('amountPaid'); if (e) { e.value = a; e.dispatchEvent(new Event('input')); } };
 
     function processPayment() {
-        var methodEl = document.querySelector('input[name="payment_method"]:checked');
-        var method = methodEl ? methodEl.value : 'cash';
-        var total = getTotal();
-        var amountPaid, changeAmount;
-
+        var m = document.querySelector('input[name="payment_method"]:checked');
+        var method = m ? m.value : 'cash', total = getTotal(), paid, change;
         if (method === 'cash') {
-            var paidEl = document.getElementById('amountPaid');
-            amountPaid = paidEl ? (parseFloat(paidEl.value) || 0) : 0;
-            if (amountPaid < total) {
-                var errEl = document.getElementById('paymentError');
-                var errText = document.getElementById('paymentErrorText');
-                if (errText) errText.textContent = 'Insufficient payment amount.';
-                if (errEl) errEl.style.display = '';
-                return;
-            }
-            changeAmount = amountPaid - total;
-        } else {
-            amountPaid = total;
-            changeAmount = 0;
-        }
-
-        var errEl = document.getElementById('paymentError');
-        if (errEl) errEl.style.display = 'none';
-
+            paid = parseFloat(document.getElementById('amountPaid').value) || 0;
+            if (paid < total) { document.getElementById('paymentErrorText').textContent = 'Insufficient amount'; document.getElementById('paymentError').style.display = ''; return; }
+            change = paid - total;
+        } else { paid = total; change = 0; }
+        document.getElementById('paymentError').style.display = 'none';
         var btn = document.getElementById('confirmPayBtn');
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
-        }
-
-        var formData = new FormData();
-        formData.append('csrf_token', '<?= csrf_token() ?>');
-        formData.append('subtotal', getSubtotal());
-        formData.append('tax', getTax());
-        formData.append('discount', getDiscount());
-        formData.append('total', total);
-        formData.append('payment_method', method);
-        formData.append('amount_paid', amountPaid);
-        formData.append('change_amount', changeAmount);
-
+        btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        var fd = new FormData();
+        fd.append('csrf_token', '<?= csrf_token() ?>');
+        fd.append('subtotal', getSubtotal()); fd.append('tax', getTax()); fd.append('discount', getDiscount());
+        fd.append('total', total); fd.append('payment_method', method); fd.append('amount_paid', paid); fd.append('change_amount', change);
         for (var i = 0; i < items.length; i++) {
-            formData.append('items[' + i + '][product_id]', items[i].product_id);
-            formData.append('items[' + i + '][quantity]', items[i].quantity);
-            formData.append('items[' + i + '][price]', items[i].price);
-            formData.append('items[' + i + '][subtotal]', items[i].subtotal);
+            fd.append('items[' + i + '][product_id]', items[i].product_id);
+            fd.append('items[' + i + '][quantity]', items[i].quantity);
+            fd.append('items[' + i + '][price]', items[i].price);
+            fd.append('items[' + i + '][subtotal]', items[i].subtotal);
         }
-
-        fetch('<?= url('transactions/store') ?>', {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Payment';
-            }
-            if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-                var invEl = document.getElementById('successInvoice');
-                if (invEl) invEl.textContent = 'Invoice: ' + (data.invoice_no || 'N/A');
-
-                document.getElementById('printReceiptBtn').onclick = function() {
-                    window.open('<?= url('transactions/receipt') ?>/' + data.transaction_id, '_blank');
-                };
-                document.getElementById('newSaleBtn').onclick = function() {
-                    items = [];
-                    renderCart();
-                    loadProducts();
-                    bootstrap.Modal.getInstance(document.getElementById('successModal')).hide();
-                };
-
-                new bootstrap.Modal(document.getElementById('successModal')).show();
-            } else {
-                var errText = document.getElementById('paymentErrorText');
-                if (errText) errText.textContent = data.message || 'Transaction failed.';
-                if (errEl) errEl.style.display = '';
-            }
-        })
-        .catch(function() {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Payment';
-            }
-            var errText = document.getElementById('paymentErrorText');
-            if (errText) errText.textContent = 'Network error. Please try again.';
-            if (errEl) errEl.style.display = '';
-        });
+        fetch('<?= url('transactions/store') ?>', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                btn.disabled = false; btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm';
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+                    document.getElementById('successInvoice').textContent = 'Invoice: ' + (data.invoice_no || 'N/A');
+                    document.getElementById('printReceiptBtn').onclick = function() { window.open('<?= url('transactions/receipt') ?>/' + data.transaction_id, '_blank'); };
+                    document.getElementById('newSaleBtn').onclick = function() { items = []; renderCart(); loadProducts(); bootstrap.Modal.getInstance(document.getElementById('successModal')).hide(); };
+                    new bootstrap.Modal(document.getElementById('successModal')).show();
+                } else { document.getElementById('paymentErrorText').textContent = data.message || 'Failed'; document.getElementById('paymentError').style.display = ''; }
+            })
+            .catch(function() { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm'; document.getElementById('paymentErrorText').textContent = 'Network error'; document.getElementById('paymentError').style.display = ''; });
     }
 
-    // ===== Init on DOM Ready =====
     document.addEventListener('DOMContentLoaded', function() {
-        // Clear cart button
-        var clearBtn = document.getElementById('clearCartBtn');
-        if (clearBtn) clearBtn.addEventListener('click', clearCart);
-
-        // Cart button clicks (event delegation)
-        var cartContainer = document.getElementById('cartItems');
-        if (cartContainer) {
-            cartContainer.addEventListener('click', function(e) {
-                var removeBtn = e.target.closest('.cart-remove');
-                if (removeBtn) {
-                    removeFromCart(parseInt(removeBtn.getAttribute('data-id')));
-                    return;
-                }
-                var qtyBtn = e.target.closest('.qty-minus, .qty-plus');
-                if (qtyBtn) {
-                    var delta = qtyBtn.classList.contains('qty-plus') ? 1 : -1;
-                    updateQty(parseInt(qtyBtn.getAttribute('data-id')), delta);
-                }
-            });
-        }
-
-        // Product clicks (event delegation on container)
-        var prodContainer = document.getElementById('productsContainer');
-        if (prodContainer) {
-            prodContainer.addEventListener('click', function(e) {
-                var card = e.target.closest('.product-card');
-                if (!card || card.classList.contains('out-of-stock')) return;
-                addToCart(
-                    parseInt(card.getAttribute('data-product-id')),
-                    card.getAttribute('data-product-name'),
-                    parseFloat(card.getAttribute('data-product-price')),
-                    parseInt(card.getAttribute('data-product-stock'))
-                );
-            });
-        }
-
-        // Discount inputs
-        var discValue = document.getElementById('discountValue');
-        var discType = document.getElementById('discountType');
-        if (discValue) discValue.addEventListener('input', renderCart);
-        if (discType) discType.addEventListener('change', renderCart);
-
-        // Search with debounce
-        var searchInput = document.getElementById('productSearch');
-        var clearSearch = document.getElementById('clearSearch');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                var kw = this.value.trim();
-                if (clearSearch) clearSearch.style.display = kw ? '' : 'none';
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(function() {
-                    loadProducts(kw, currentCategory);
-                }, 300);
-            });
-        }
-        if (clearSearch) {
-            clearSearch.addEventListener('click', function() {
-                if (searchInput) {
-                    searchInput.value = '';
-                    this.style.display = 'none';
-                    loadProducts('', currentCategory);
-                    searchInput.focus();
-                }
-            });
-        }
-
-        // Category tabs
-        var catTabs = document.querySelectorAll('.category-tab');
-        for (var i = 0; i < catTabs.length; i++) {
-            catTabs[i].addEventListener('click', function() {
-                for (var j = 0; j < catTabs.length; j++) {
-                    catTabs[j].classList.remove('btn-primary', 'active');
-                    catTabs[j].classList.add('btn-outline');
-                }
-                this.classList.remove('btn-outline');
-                this.classList.add('btn-primary', 'active');
+        var cb = document.getElementById('clearCartBtn'); if (cb) cb.onclick = function() { if (items.length && confirm('Clear cart?')) { items = []; renderCart(); } };
+        var si = document.getElementById('productSearch'), cs = document.getElementById('clearSearch');
+        if (si) si.addEventListener('input', function() { var k = this.value.trim(); if (cs) cs.style.display = k ? '' : 'none'; clearTimeout(searchTimeout); searchTimeout = setTimeout(function() { loadProducts(k, currentCategory); }, 300); });
+        if (cs) cs.onclick = function() { if (si) { si.value = ''; this.style.display = 'none'; loadProducts('', currentCategory); si.focus(); } };
+        document.querySelectorAll('.pos-cat').forEach(function(b) {
+            b.addEventListener('click', function() {
+                document.querySelectorAll('.pos-cat').forEach(function(x) { x.classList.remove('active'); });
+                this.classList.add('active');
                 currentCategory = this.getAttribute('data-category');
-                var kw = searchInput ? searchInput.value.trim() : '';
-                loadProducts(kw, currentCategory);
+                loadProducts(si ? si.value.trim() : '', currentCategory);
             });
-        }
-
-        // Pay button
-        var payBtn = document.getElementById('payBtn');
-        if (payBtn) payBtn.addEventListener('click', openPaymentModal);
-
-        // Confirm payment
-        var confirmBtn = document.getElementById('confirmPayBtn');
-        if (confirmBtn) confirmBtn.addEventListener('click', processPayment);
-
-        // Amount paid calculation
-        var amountPaidEl = document.getElementById('amountPaid');
-        if (amountPaidEl) {
-            amountPaidEl.addEventListener('input', function() {
-                var paid = parseFloat(this.value) || 0;
-                var total = getTotal();
-                var change = Math.max(0, paid - total);
-                var changeDisp = document.getElementById('changeDisplay');
-                if (changeDisp) changeDisp.textContent = formatRupiah(change);
-            });
-        }
-
-        // Payment method toggle
-        var radios = document.querySelectorAll('input[name="payment_method"]');
-        for (var i = 0; i < radios.length; i++) {
-            radios[i].addEventListener('change', function() {
-                var cashSection = document.getElementById('cashPaymentSection');
-                if (cashSection) cashSection.style.display = this.value === 'cash' ? '' : 'none';
-            });
-        }
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'F2') {
-                e.preventDefault();
-                if (searchInput) searchInput.focus();
-            }
-            if (e.key === 'F4' && items.length > 0) {
-                e.preventDefault();
-                openPaymentModal();
-            }
         });
-
-        // Load initial products
+        var pb = document.getElementById('payBtn'); if (pb) pb.onclick = openPayment;
+        var cp = document.getElementById('confirmPayBtn'); if (cp) cp.onclick = processPayment;
+        var ap = document.getElementById('amountPaid');
+        if (ap) ap.addEventListener('input', function() { var p = parseFloat(this.value) || 0, t = getTotal(), c = document.getElementById('changeDisplay'); if (c) c.textContent = formatRupiah(Math.max(0, p - t)); });
+        document.querySelectorAll('input[name="payment_method"]').forEach(function(r) { r.addEventListener('change', function() { var s = document.getElementById('cashPaymentSection'); if (s) s.style.display = this.value === 'cash' ? '' : 'none'; }); });
+        var dv = document.getElementById('discountValue'), dt = document.getElementById('discountType');
+        if (dv) dv.addEventListener('input', renderCart); if (dt) dt.addEventListener('change', renderCart);
         loadProducts();
     });
 })();
