@@ -302,483 +302,547 @@
 </style>
 
 <script>
-// ===== Cart Management =====
-const cart = {
-    items: [],
-    taxRate: parseFloat('<?= setting("tax_rate", 0) ?>'),
+(function() {
+    'use strict';
 
-    add(product) {
-        const existing = this.items.find(i => i.product_id === product.id);
-        if (existing) {
-            if (existing.quantity < product.stock) {
-                existing.quantity++;
-                existing.subtotal = existing.quantity * existing.price;
-            }
-        } else {
-            this.items.push({
-                product_id: product.id,
-                name: product.name,
-                price: product.price,
-                quantity: 1,
-                stock: product.stock,
-                subtotal: product.price
-            });
-        }
-        this.render();
-        showToast(product.name + ' added to cart', 'success');
-    },
+    var taxRate = parseFloat('<?= setting("tax_rate", 0) ?>') || 0;
+    var items = [];
+    var currentCategory = '';
+    var searchTimeout = null;
 
-    remove(productId) {
-        this.items = this.items.filter(i => i.product_id !== productId);
-        this.render();
-    },
-
-    updateQuantity(productId, delta) {
-        const item = this.items.find(i => i.product_id === productId);
-        if (item) {
-            const newQty = item.quantity + delta;
-            if (newQty > 0 && newQty <= item.stock) {
-                item.quantity = newQty;
-                item.subtotal = item.quantity * item.price;
-            } else if (newQty <= 0) {
-                this.remove(productId);
-                return;
-            }
-        }
-        this.render();
-    },
-
-    clear() {
-        this.items = [];
-        this.render();
-    },
-
-    getSubtotal() {
-        return this.items.reduce(function(sum, item) { return sum + item.subtotal; }, 0);
-    },
-
-    getTax() {
-        return this.getSubtotal() * (this.taxRate / 100);
-    },
-
-    getDiscount() {
-        const value = parseFloat(document.getElementById('discountValue').value) || 0;
-        const type = document.getElementById('discountType').value;
-        if (type === 'percentage') {
-            return (this.getSubtotal() + this.getTax()) * (value / 100);
-        }
-        return value;
-    },
-
-    getTotal() {
-        return this.getSubtotal() + this.getTax() - this.getDiscount();
-    },
-
-    formatRupiah(amount) {
+    // ===== Utility Functions =====
+    function formatRupiah(amount) {
         return 'Rp ' + Math.round(amount).toLocaleString('id-ID');
-    },
+    }
 
-    escapeHtml(text) {
+    function escapeHtml(text) {
         var div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
-    },
+    }
 
-    render() {
+    function showToast(message, type) {
+        var container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+        var toast = document.createElement('div');
+        toast.className = 'toast toast-' + (type || 'success');
+        var iconClass = type === 'error' ? 'exclamation-circle text-danger' : 'check-circle text-success';
+        toast.innerHTML = '<i class="fas fa-' + iconClass + '"></i><span>' + message + '</span>';
+        container.appendChild(toast);
+        setTimeout(function() {
+            toast.classList.add('removing');
+            setTimeout(function() { toast.remove(); }, 300);
+        }, 2500);
+    }
+
+    // ===== Cart Calculations =====
+    function getSubtotal() {
+        var sum = 0;
+        for (var i = 0; i < items.length; i++) {
+            sum += items[i].subtotal;
+        }
+        return sum;
+    }
+
+    function getTax() {
+        return getSubtotal() * (taxRate / 100);
+    }
+
+    function getDiscount() {
+        var discountEl = document.getElementById('discountValue');
+        var typeEl = document.getElementById('discountType');
+        if (!discountEl || !typeEl) return 0;
+        var value = parseFloat(discountEl.value) || 0;
+        var type = typeEl.value;
+        if (type === 'percentage') {
+            return (getSubtotal() + getTax()) * (value / 100);
+        }
+        return value;
+    }
+
+    function getTotal() {
+        return getSubtotal() + getTax() - getDiscount();
+    }
+
+    // ===== Cart Actions =====
+    function addToCart(id, name, price, stock) {
+        id = parseInt(id);
+        price = parseFloat(price);
+        stock = parseInt(stock);
+
+        var existing = null;
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].product_id === id) {
+                existing = items[i];
+                break;
+            }
+        }
+
+        if (existing) {
+            if (existing.quantity < stock) {
+                existing.quantity++;
+                existing.subtotal = existing.quantity * existing.price;
+            } else {
+                showToast('Max stock reached for ' + name, 'warning');
+                return;
+            }
+        } else {
+            items.push({
+                product_id: id,
+                name: name,
+                price: price,
+                quantity: 1,
+                stock: stock,
+                subtotal: price
+            });
+        }
+        renderCart();
+        showToast(name + ' added to cart', 'success');
+    }
+
+    function removeFromCart(id) {
+        id = parseInt(id);
+        for (var i = items.length - 1; i >= 0; i--) {
+            if (items[i].product_id === id) {
+                items.splice(i, 1);
+            }
+        }
+        renderCart();
+    }
+
+    function updateQty(id, delta) {
+        id = parseInt(id);
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].product_id === id) {
+                var newQty = items[i].quantity + delta;
+                if (newQty > 0 && newQty <= items[i].stock) {
+                    items[i].quantity = newQty;
+                    items[i].subtotal = items[i].quantity * items[i].price;
+                } else if (newQty <= 0) {
+                    removeFromCart(id);
+                    return;
+                } else if (newQty > items[i].stock) {
+                    showToast('Max stock reached', 'warning');
+                }
+                break;
+            }
+        }
+        renderCart();
+    }
+
+    function clearCart() {
+        if (items.length === 0) return;
+        if (confirm('Clear all items from cart?')) {
+            items = [];
+            renderCart();
+        }
+    }
+
+    // ===== Render Cart =====
+    function renderCart() {
         var container = document.getElementById('cartItems');
         var emptyCart = document.getElementById('emptyCart');
         var payBtn = document.getElementById('payBtn');
 
-        if (this.items.length === 0) {
+        if (!container) return;
+
+        // Update totals
+        var subtotalEl = document.getElementById('subtotalDisplay');
+        var taxRateEl = document.getElementById('taxRateDisplay');
+        var taxEl = document.getElementById('taxDisplay');
+        var discountEl = document.getElementById('discountDisplay');
+        var totalEl = document.getElementById('totalDisplay');
+
+        if (subtotalEl) subtotalEl.textContent = formatRupiah(getSubtotal());
+        if (taxRateEl) taxRateEl.textContent = taxRate;
+        if (taxEl) taxEl.textContent = formatRupiah(getTax());
+        if (discountEl) discountEl.textContent = '- ' + formatRupiah(getDiscount());
+        if (totalEl) totalEl.textContent = formatRupiah(getTotal());
+
+        if (items.length === 0) {
             container.innerHTML = '';
-            container.appendChild(emptyCart);
-            emptyCart.style.display = '';
-            payBtn.disabled = true;
-        } else {
-            emptyCart.style.display = 'none';
-            payBtn.disabled = false;
-
-            var html = '';
-            for (var i = 0; i < this.items.length; i++) {
-                var item = this.items[i];
-                var escapedName = this.escapeHtml(item.name);
-                var disabledPlus = item.quantity >= item.stock ? 'disabled' : '';
-
-                html += '<div class="cart-item" data-cart-id="' + item.product_id + '">';
-                html += '  <div class="d-flex justify-content-between align-items-start">';
-                html += '    <div class="flex-grow-1 me-2">';
-                html += '      <div class="fw-semibold small">' + escapedName + '</div>';
-                html += '      <div class="text-muted small">' + this.formatRupiah(item.price) + ' each</div>';
-                html += '    </div>';
-                html += '    <button class="btn btn-sm btn-outline-danger cart-remove p-1" type="button" data-id="' + item.product_id + '"';
-                html += '            style="min-width:32px;min-height:32px;">';
-                html += '      <i class="fas fa-times"></i>';
-                html += '    </button>';
-                html += '  </div>';
-                html += '  <div class="d-flex justify-content-between align-items-center mt-2">';
-                html += '    <div class="d-flex align-items-center gap-1">';
-                html += '      <button class="btn btn-sm btn-outline qty-btn qty-minus" type="button" data-id="' + item.product_id + '">';
-                html += '        <i class="fas fa-minus"></i>';
-                html += '      </button>';
-                html += '      <span class="fw-bold mx-2" style="min-width:24px;text-align:center;">' + item.quantity + '</span>';
-                html += '      <button class="btn btn-sm btn-outline qty-btn qty-plus" type="button" data-id="' + item.product_id + '" ' + disabledPlus + '>';
-                html += '        <i class="fas fa-plus"></i>';
-                html += '      </button>';
-                html += '    </div>';
-                html += '    <span class="fw-bold">' + this.formatRupiah(item.subtotal) + '</span>';
-                html += '  </div>';
-                html += '</div>';
+            if (emptyCart) {
+                container.appendChild(emptyCart);
+                emptyCart.style.display = '';
             }
-            container.innerHTML = html;
-        }
-
-        document.getElementById('subtotalDisplay').textContent = this.formatRupiah(this.getSubtotal());
-        document.getElementById('taxRateDisplay').textContent = this.taxRate;
-        document.getElementById('taxDisplay').textContent = this.formatRupiah(this.getTax());
-        document.getElementById('discountDisplay').textContent = '- ' + this.formatRupiah(this.getDiscount());
-        document.getElementById('totalDisplay').textContent = this.formatRupiah(this.getTotal());
-    }
-};
-
-// ===== Toast Notification =====
-function showToast(message, type) {
-    var container = document.querySelector('.toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.className = 'toast-container';
-        document.body.appendChild(container);
-    }
-    var toast = document.createElement('div');
-    toast.className = 'toast toast-' + (type || 'success');
-    toast.innerHTML = '<i class="fas fa-' + (type === 'error' ? 'exclamation-circle text-danger' : 'check-circle text-success') + '"></i><span>' + message + '</span>';
-    container.appendChild(toast);
-    setTimeout(function() {
-        toast.classList.add('removing');
-        setTimeout(function() { toast.remove(); }, 300);
-    }, 2500);
-}
-
-// ===== Discount Calculation Events =====
-document.getElementById('discountValue').addEventListener('input', function() { cart.render(); });
-document.getElementById('discountType').addEventListener('change', function() { cart.render(); });
-
-// ===== Cart button event delegation =====
-document.getElementById('cartItems').addEventListener('click', function(e) {
-    var removeBtn = e.target.closest('.cart-remove');
-    if (removeBtn) {
-        cart.remove(parseInt(removeBtn.dataset.id));
-        return;
-    }
-    var qtyMinus = e.target.closest('.qty-minus');
-    if (qtyMinus) {
-        cart.updateQuantity(parseInt(qtyMinus.dataset.id), -1);
-        return;
-    }
-    var qtyPlus = e.target.closest('.qty-plus');
-    if (qtyPlus) {
-        cart.updateQuantity(parseInt(qtyPlus.dataset.id), 1);
-        return;
-    }
-});
-
-// ===== Clear Cart =====
-document.getElementById('clearCartBtn').addEventListener('click', function() {
-    if (cart.items.length === 0) return;
-    if (confirm('Clear all items from cart?')) {
-        cart.clear();
-    }
-});
-
-// ===== Product Search & Loading =====
-var currentCategory = '';
-var searchTimeout = null;
-
-function loadProducts(keyword, categoryId) {
-    keyword = keyword || '';
-    categoryId = categoryId || '';
-
-    var container = document.getElementById('productsContainer');
-    var loading = document.getElementById('loadingIndicator');
-    var empty = document.getElementById('emptyState');
-
-    container.innerHTML = '';
-    loading.style.display = '';
-    empty.style.display = 'none';
-
-    var params = new URLSearchParams();
-    if (keyword) params.set('q', keyword);
-    if (categoryId) params.set('category_id', categoryId);
-
-    fetch('<?= url('api/products/search') ?>?' + params.toString(), {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    .then(function(res) { return res.json(); })
-    .then(function(data) {
-        loading.style.display = 'none';
-        if (data.success && data.products && data.products.length > 0) {
-            var html = '';
-            for (var i = 0; i < data.products.length; i++) {
-                var product = data.products[i];
-                var outOfStock = product.stock <= 0;
-                var escapedName = cart.escapeHtml(product.name);
-
-                html += '<div class="col-6 col-md-4 col-xl-3">';
-                html += '  <div class="card product-card h-100' + (outOfStock ? ' out-of-stock' : '') + '"' +
-                        ' data-product-id="' + product.id + '"' +
-                        ' data-product-name="' + escapedName + '"' +
-                        ' data-product-price="' + parseFloat(product.price) + '"' +
-                        ' data-product-stock="' + parseInt(product.stock, 10) + '">';
-                html += '    <div class="card-body p-2 text-center">';
-                if (product.image) {
-                    html += '      <img src="<?= url('uploads') ?>/' + product.image + '" class="img-fluid rounded mb-2" style="max-height:60px;object-fit:cover;">';
-                } else {
-                    html += '      <div class="mb-2"><i class="fas fa-box fa-2x text-muted"></i></div>';
-                }
-                html += '      <div class="fw-semibold small text-truncate" title="' + escapedName + '">' + escapedName + '</div>';
-                html += '      <div class="text-primary fw-bold small">' + cart.formatRupiah(parseFloat(product.price)) + '</div>';
-                html += '      <span class="badge badge-' + (outOfStock ? 'danger' : 'success') + ' mt-1">' + product.stock + '</span>';
-                html += '    </div>';
-                html += '  </div>';
-                html += '</div>';
-            }
-            container.innerHTML = html;
-            empty.style.display = 'none';
-        } else {
-            container.innerHTML = '';
-            empty.style.display = '';
-        }
-    })
-    .catch(function() {
-        loading.style.display = 'none';
-        empty.style.display = '';
-    });
-}
-
-// Search input with debounce
-document.getElementById('productSearch').addEventListener('input', function() {
-    var keyword = this.value.trim();
-    document.getElementById('clearSearch').style.display = keyword ? '' : 'none';
-
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(function() {
-        loadProducts(keyword, currentCategory);
-    }, 300);
-});
-
-document.getElementById('clearSearch').addEventListener('click', function() {
-    document.getElementById('productSearch').value = '';
-    this.style.display = 'none';
-    loadProducts('', currentCategory);
-    document.getElementById('productSearch').focus();
-});
-
-// Category tabs
-document.querySelectorAll('.category-tab').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-        document.querySelectorAll('.category-tab').forEach(function(b) {
-            b.classList.remove('btn-primary', 'active');
-            b.classList.add('btn-outline');
-        });
-        this.classList.remove('btn-outline');
-        this.classList.add('btn-primary', 'active');
-
-        currentCategory = this.dataset.category;
-        loadProducts(document.getElementById('productSearch').value.trim(), currentCategory);
-    });
-});
-
-// Product grid click handler (event delegation)
-document.getElementById('productGrid').addEventListener('click', function(e) {
-    var card = e.target.closest('.product-card');
-    if (!card) return;
-    if (card.classList.contains('out-of-stock')) return;
-
-    var product = {
-        id: parseInt(card.dataset.productId),
-        name: card.dataset.productName,
-        price: parseFloat(card.dataset.productPrice),
-        stock: parseInt(card.dataset.productStock)
-    };
-
-    cart.add(product);
-});
-
-// ===== Payment Modal =====
-function openPaymentModal() {
-    if (cart.items.length === 0) return;
-
-    var total = cart.getTotal();
-    document.getElementById('modalTotal').textContent = cart.formatRupiah(total);
-    document.getElementById('amountPaid').value = '';
-    document.getElementById('changeDisplay').textContent = cart.formatRupiah(0);
-    document.getElementById('paymentError').style.display = 'none';
-
-    // Generate quick cash buttons based on total
-    generateQuickCashButtons(total);
-
-    var modal = new bootstrap.Modal(document.getElementById('paymentModal'));
-    modal.show();
-}
-
-function generateQuickCashButtons(total) {
-    var container = document.getElementById('quickCashButtons');
-    var amounts = [];
-    var rounded = Math.ceil(total / 10000) * 10000;
-
-    amounts.push(rounded);
-    if (rounded < total + 10000) {
-        amounts.push(rounded + 10000);
-    }
-    amounts.push(rounded + 50000);
-    amounts.push(100000);
-    amounts.push(200000);
-
-    // Deduplicate and sort
-    amounts = amounts.filter(function(v, i, a) { return a.indexOf(v) === i; }).sort(function(a, b) { return a - b; });
-    amounts = amounts.slice(0, 6);
-
-    var html = '';
-    for (var i = 0; i < amounts.length; i++) {
-        var label = amounts[i] >= 1000 ? (amounts[i] / 1000) + 'K' : amounts[i];
-        html += '<div class="col-4">';
-        html += '  <button class="btn btn-outline quick-cash-btn w-100" type="button" data-amount="' + amounts[i] + '">';
-        html += label;
-        html += '  </button>';
-        html += '</div>';
-    }
-    container.innerHTML = html;
-
-    // Attach click events
-    container.querySelectorAll('.quick-cash-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            document.getElementById('amountPaid').value = this.dataset.amount;
-            document.getElementById('amountPaid').dispatchEvent(new Event('input'));
-        });
-    });
-}
-
-// Amount paid calculation
-document.getElementById('amountPaid').addEventListener('input', function() {
-    var paid = parseFloat(this.value) || 0;
-    var total = cart.getTotal();
-    var change = Math.max(0, paid - total);
-    document.getElementById('changeDisplay').textContent = cart.formatRupiah(change);
-});
-
-// Payment method toggle
-document.querySelectorAll('input[name="payment_method"]').forEach(function(radio) {
-    radio.addEventListener('change', function() {
-        document.getElementById('cashPaymentSection').style.display =
-            this.value === 'cash' ? '' : 'none';
-    });
-});
-
-// Pay button
-document.getElementById('payBtn').addEventListener('click', function() {
-    openPaymentModal();
-});
-
-// Confirm payment
-document.getElementById('confirmPayBtn').addEventListener('click', function() {
-    processPayment();
-});
-
-function processPayment() {
-    var method = document.querySelector('input[name="payment_method"]:checked').value;
-    var total = cart.getTotal();
-    var amountPaid, changeAmount;
-
-    if (method === 'cash') {
-        amountPaid = parseFloat(document.getElementById('amountPaid').value) || 0;
-        if (amountPaid < total) {
-            document.getElementById('paymentErrorText').textContent = 'Insufficient payment amount.';
-            document.getElementById('paymentError').style.display = '';
+            if (payBtn) payBtn.disabled = true;
             return;
         }
-        changeAmount = amountPaid - total;
-    } else {
-        amountPaid = total;
-        changeAmount = 0;
-    }
 
-    var errorEl = document.getElementById('paymentError');
-    errorEl.style.display = 'none';
+        if (emptyCart) emptyCart.style.display = 'none';
+        if (payBtn) payBtn.disabled = false;
 
-    var btn = document.getElementById('confirmPayBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        var html = '';
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            var eName = escapeHtml(item.name);
+            var canAddMore = item.quantity < item.stock;
 
-    var formData = new FormData();
-    formData.append('csrf_token', '<?= csrf_token() ?>');
-    formData.append('subtotal', cart.getSubtotal());
-    formData.append('tax', cart.getTax());
-    formData.append('discount', cart.getDiscount());
-    formData.append('total', total);
-    formData.append('payment_method', method);
-    formData.append('amount_paid', amountPaid);
-    formData.append('change_amount', changeAmount);
-
-    for (var i = 0; i < cart.items.length; i++) {
-        var item = cart.items[i];
-        formData.append('items[' + i + '][product_id]', item.product_id);
-        formData.append('items[' + i + '][quantity]', item.quantity);
-        formData.append('items[' + i + '][price]', item.price);
-        formData.append('items[' + i + '][subtotal]', item.subtotal);
-    }
-
-    fetch('<?= url('transactions/store') ?>', {
-        method: 'POST',
-        body: formData,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    .then(function(res) { return res.json(); })
-    .then(function(data) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Payment';
-
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-            document.getElementById('successInvoice').textContent = 'Invoice: ' + (data.invoice_no || 'N/A');
-
-            document.getElementById('printReceiptBtn').onclick = function() {
-                window.open('<?= url('transactions/receipt') ?>/' + data.transaction_id, '_blank');
-            };
-
-            document.getElementById('newSaleBtn').onclick = function() {
-                cart.clear();
-                loadProducts();
-                bootstrap.Modal.getInstance(document.getElementById('successModal')).hide();
-            };
-
-            var successModal = new bootstrap.Modal(document.getElementById('successModal'));
-            successModal.show();
-        } else {
-            document.getElementById('paymentErrorText').textContent = data.message || 'Transaction failed.';
-            errorEl.style.display = '';
+            html += '<div class="cart-item" data-id="' + item.product_id + '">';
+            html += '  <div class="d-flex justify-content-between align-items-start">';
+            html += '    <div class="flex-grow-1 me-2">';
+            html += '      <div class="fw-semibold small">' + eName + '</div>';
+            html += '      <div class="text-muted small">' + formatRupiah(item.price) + ' each</div>';
+            html += '    </div>';
+            html += '    <button class="btn btn-sm btn-outline-danger cart-remove p-1" type="button" data-id="' + item.product_id + '" style="min-width:32px;min-height:32px;">';
+            html += '      <i class="fas fa-times"></i>';
+            html += '    </button>';
+            html += '  </div>';
+            html += '  <div class="d-flex justify-content-between align-items-center mt-2">';
+            html += '    <div class="d-flex align-items-center gap-1">';
+            html += '      <button class="btn btn-sm btn-outline qty-btn qty-minus" type="button" data-id="' + item.product_id + '" style="width:36px;height:36px;">';
+            html += '        <i class="fas fa-minus"></i>';
+            html += '      </button>';
+            html += '      <span class="fw-bold mx-2" style="min-width:24px;text-align:center;">' + item.quantity + '</span>';
+            html += '      <button class="btn btn-sm btn-outline qty-btn qty-plus" type="button" data-id="' + item.product_id + '" style="width:36px;height:36px;"' + (canAddMore ? '' : ' disabled') + '>';
+            html += '        <i class="fas fa-plus"></i>';
+            html += '      </button>';
+            html += '    </div>';
+            html += '    <span class="fw-bold">' + formatRupiah(item.subtotal) + '</span>';
+            html += '  </div>';
+            html += '</div>';
         }
-    })
-    .catch(function() {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Payment';
-        document.getElementById('paymentErrorText').textContent = 'Network error. Please try again.';
-        errorEl.style.display = '';
+        container.innerHTML = html;
+    }
+
+    // ===== Load Products =====
+    function loadProducts(keyword, categoryId) {
+        keyword = keyword || '';
+        categoryId = categoryId || '';
+
+        var container = document.getElementById('productsContainer');
+        var loading = document.getElementById('loadingIndicator');
+        var empty = document.getElementById('emptyState');
+
+        if (!container) return;
+
+        container.innerHTML = '';
+        if (loading) loading.style.display = '';
+        if (empty) empty.style.display = 'none';
+
+        var params = new URLSearchParams();
+        if (keyword) params.set('q', keyword);
+        if (categoryId) params.set('category_id', categoryId);
+
+        var url = '<?= url('api/products/search') ?>?' + params.toString();
+
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (loading) loading.style.display = 'none';
+                if (!data.success || !data.products || data.products.length === 0) {
+                    if (empty) empty.style.display = '';
+                    return;
+                }
+
+                var html = '';
+                for (var i = 0; i < data.products.length; i++) {
+                    var p = data.products[i];
+                    var outOfStock = parseInt(p.stock, 10) <= 0;
+                    var eName = escapeHtml(p.name);
+                    var pId = parseInt(p.id, 10);
+                    var pPrice = parseFloat(p.price);
+                    var pStock = parseInt(p.stock, 10);
+
+                    html += '<div class="col-6 col-md-4 col-xl-3">';
+                    html += '  <div class="card product-card h-100' + (outOfStock ? ' out-of-stock' : '') + '"';
+                    html += '       onclick="window._posAddToCart(' + pId + ',\'' + eName.replace(/'/g, "\\'") + '\',' + pPrice + ',' + pStock + ')"';
+                    html += '       style="cursor:' + (outOfStock ? 'not-allowed' : 'pointer') + ';">';
+                    html += '    <div class="card-body p-2 text-center">';
+                    if (p.image) {
+                        html += '      <img src="<?= url('uploads') ?>/' + p.image + '" class="img-fluid rounded mb-2" style="max-height:60px;object-fit:cover;">';
+                    } else {
+                        html += '      <div class="mb-2"><i class="fas fa-box fa-2x text-muted"></i></div>';
+                    }
+                    html += '      <div class="fw-semibold small text-truncate" title="' + eName + '">' + eName + '</div>';
+                    html += '      <div class="text-primary fw-bold small">' + formatRupiah(pPrice) + '</div>';
+                    html += '      <span class="badge badge-' + (outOfStock ? 'danger' : 'success') + ' mt-1">' + pStock + '</span>';
+                    html += '    </div>';
+                    html += '  </div>';
+                    html += '</div>';
+                }
+                container.innerHTML = html;
+                if (empty) empty.style.display = 'none';
+            })
+            .catch(function() {
+                if (loading) loading.style.display = 'none';
+                if (empty) empty.style.display = '';
+            });
+    }
+
+    // Expose to global for inline onclick
+    window._posAddToCart = addToCart;
+
+    // ===== Payment Modal =====
+    function openPaymentModal() {
+        if (items.length === 0) return;
+        var total = getTotal();
+        var modalTotal = document.getElementById('modalTotal');
+        if (modalTotal) modalTotal.textContent = formatRupiah(total);
+        var amountPaid = document.getElementById('amountPaid');
+        if (amountPaid) amountPaid.value = '';
+        var changeDisp = document.getElementById('changeDisplay');
+        if (changeDisp) changeDisp.textContent = formatRupiah(0);
+        var payError = document.getElementById('paymentError');
+        if (payError) payError.style.display = 'none';
+
+        generateQuickCashButtons(total);
+
+        var modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+        modal.show();
+    }
+
+    function generateQuickCashButtons(total) {
+        var container = document.getElementById('quickCashButtons');
+        if (!container) return;
+        var amounts = [];
+        var rounded = Math.ceil(total / 10000) * 10000;
+        amounts.push(rounded);
+        amounts.push(rounded + 10000);
+        amounts.push(rounded + 50000);
+        amounts.push(100000);
+        amounts.push(200000);
+        amounts = amounts.filter(function(v, i, a) { return a.indexOf(v) === i; }).sort(function(a, b) { return a - b; }).slice(0, 6);
+
+        var html = '';
+        for (var i = 0; i < amounts.length; i++) {
+            var label = amounts[i] >= 1000 ? (amounts[i] / 1000) + 'K' : amounts[i];
+            html += '<div class="col-4"><button class="btn btn-outline quick-cash-btn w-100" type="button" onclick="window._posQuickCash(' + amounts[i] + ')">' + label + '</button></div>';
+        }
+        container.innerHTML = html;
+    }
+
+    window._posQuickCash = function(amount) {
+        var el = document.getElementById('amountPaid');
+        if (el) {
+            el.value = amount;
+            el.dispatchEvent(new Event('input'));
+        }
+    };
+
+    function processPayment() {
+        var methodEl = document.querySelector('input[name="payment_method"]:checked');
+        var method = methodEl ? methodEl.value : 'cash';
+        var total = getTotal();
+        var amountPaid, changeAmount;
+
+        if (method === 'cash') {
+            var paidEl = document.getElementById('amountPaid');
+            amountPaid = paidEl ? (parseFloat(paidEl.value) || 0) : 0;
+            if (amountPaid < total) {
+                var errEl = document.getElementById('paymentError');
+                var errText = document.getElementById('paymentErrorText');
+                if (errText) errText.textContent = 'Insufficient payment amount.';
+                if (errEl) errEl.style.display = '';
+                return;
+            }
+            changeAmount = amountPaid - total;
+        } else {
+            amountPaid = total;
+            changeAmount = 0;
+        }
+
+        var errEl = document.getElementById('paymentError');
+        if (errEl) errEl.style.display = 'none';
+
+        var btn = document.getElementById('confirmPayBtn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        }
+
+        var formData = new FormData();
+        formData.append('csrf_token', '<?= csrf_token() ?>');
+        formData.append('subtotal', getSubtotal());
+        formData.append('tax', getTax());
+        formData.append('discount', getDiscount());
+        formData.append('total', total);
+        formData.append('payment_method', method);
+        formData.append('amount_paid', amountPaid);
+        formData.append('change_amount', changeAmount);
+
+        for (var i = 0; i < items.length; i++) {
+            formData.append('items[' + i + '][product_id]', items[i].product_id);
+            formData.append('items[' + i + '][quantity]', items[i].quantity);
+            formData.append('items[' + i + '][price]', items[i].price);
+            formData.append('items[' + i + '][subtotal]', items[i].subtotal);
+        }
+
+        fetch('<?= url('transactions/store') ?>', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Payment';
+            }
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+                var invEl = document.getElementById('successInvoice');
+                if (invEl) invEl.textContent = 'Invoice: ' + (data.invoice_no || 'N/A');
+
+                document.getElementById('printReceiptBtn').onclick = function() {
+                    window.open('<?= url('transactions/receipt') ?>/' + data.transaction_id, '_blank');
+                };
+                document.getElementById('newSaleBtn').onclick = function() {
+                    items = [];
+                    renderCart();
+                    loadProducts();
+                    bootstrap.Modal.getInstance(document.getElementById('successModal')).hide();
+                };
+
+                new bootstrap.Modal(document.getElementById('successModal')).show();
+            } else {
+                var errText = document.getElementById('paymentErrorText');
+                if (errText) errText.textContent = data.message || 'Transaction failed.';
+                if (errEl) errEl.style.display = '';
+            }
+        })
+        .catch(function() {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Payment';
+            }
+            var errText = document.getElementById('paymentErrorText');
+            if (errText) errText.textContent = 'Network error. Please try again.';
+            if (errEl) errEl.style.display = '';
+        });
+    }
+
+    // ===== Init on DOM Ready =====
+    document.addEventListener('DOMContentLoaded', function() {
+        // Clear cart button
+        var clearBtn = document.getElementById('clearCartBtn');
+        if (clearBtn) clearBtn.addEventListener('click', clearCart);
+
+        // Cart button clicks (event delegation)
+        var cartContainer = document.getElementById('cartItems');
+        if (cartContainer) {
+            cartContainer.addEventListener('click', function(e) {
+                var removeBtn = e.target.closest('.cart-remove');
+                if (removeBtn) {
+                    removeFromCart(parseInt(removeBtn.getAttribute('data-id')));
+                    return;
+                }
+                var qtyBtn = e.target.closest('.qty-minus, .qty-plus');
+                if (qtyBtn) {
+                    var delta = qtyBtn.classList.contains('qty-plus') ? 1 : -1;
+                    updateQty(parseInt(qtyBtn.getAttribute('data-id')), delta);
+                }
+            });
+        }
+
+        // Product clicks (event delegation on container)
+        var prodContainer = document.getElementById('productsContainer');
+        if (prodContainer) {
+            prodContainer.addEventListener('click', function(e) {
+                var card = e.target.closest('.product-card');
+                if (!card || card.classList.contains('out-of-stock')) return;
+                addToCart(
+                    parseInt(card.getAttribute('data-product-id')),
+                    card.getAttribute('data-product-name'),
+                    parseFloat(card.getAttribute('data-product-price')),
+                    parseInt(card.getAttribute('data-product-stock'))
+                );
+            });
+        }
+
+        // Discount inputs
+        var discValue = document.getElementById('discountValue');
+        var discType = document.getElementById('discountType');
+        if (discValue) discValue.addEventListener('input', renderCart);
+        if (discType) discType.addEventListener('change', renderCart);
+
+        // Search with debounce
+        var searchInput = document.getElementById('productSearch');
+        var clearSearch = document.getElementById('clearSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                var kw = this.value.trim();
+                if (clearSearch) clearSearch.style.display = kw ? '' : 'none';
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(function() {
+                    loadProducts(kw, currentCategory);
+                }, 300);
+            });
+        }
+        if (clearSearch) {
+            clearSearch.addEventListener('click', function() {
+                if (searchInput) {
+                    searchInput.value = '';
+                    this.style.display = 'none';
+                    loadProducts('', currentCategory);
+                    searchInput.focus();
+                }
+            });
+        }
+
+        // Category tabs
+        var catTabs = document.querySelectorAll('.category-tab');
+        for (var i = 0; i < catTabs.length; i++) {
+            catTabs[i].addEventListener('click', function() {
+                for (var j = 0; j < catTabs.length; j++) {
+                    catTabs[j].classList.remove('btn-primary', 'active');
+                    catTabs[j].classList.add('btn-outline');
+                }
+                this.classList.remove('btn-outline');
+                this.classList.add('btn-primary', 'active');
+                currentCategory = this.getAttribute('data-category');
+                var kw = searchInput ? searchInput.value.trim() : '';
+                loadProducts(kw, currentCategory);
+            });
+        }
+
+        // Pay button
+        var payBtn = document.getElementById('payBtn');
+        if (payBtn) payBtn.addEventListener('click', openPaymentModal);
+
+        // Confirm payment
+        var confirmBtn = document.getElementById('confirmPayBtn');
+        if (confirmBtn) confirmBtn.addEventListener('click', processPayment);
+
+        // Amount paid calculation
+        var amountPaidEl = document.getElementById('amountPaid');
+        if (amountPaidEl) {
+            amountPaidEl.addEventListener('input', function() {
+                var paid = parseFloat(this.value) || 0;
+                var total = getTotal();
+                var change = Math.max(0, paid - total);
+                var changeDisp = document.getElementById('changeDisplay');
+                if (changeDisp) changeDisp.textContent = formatRupiah(change);
+            });
+        }
+
+        // Payment method toggle
+        var radios = document.querySelectorAll('input[name="payment_method"]');
+        for (var i = 0; i < radios.length; i++) {
+            radios[i].addEventListener('change', function() {
+                var cashSection = document.getElementById('cashPaymentSection');
+                if (cashSection) cashSection.style.display = this.value === 'cash' ? '' : 'none';
+            });
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F2') {
+                e.preventDefault();
+                if (searchInput) searchInput.focus();
+            }
+            if (e.key === 'F4' && items.length > 0) {
+                e.preventDefault();
+                openPaymentModal();
+            }
+        });
+
+        // Load initial products
+        loadProducts();
     });
-}
-
-// Load initial products
-document.addEventListener('DOMContentLoaded', function() {
-    loadProducts();
-});
-
-// Keyboard shortcuts
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'F2') {
-        e.preventDefault();
-        document.getElementById('productSearch').focus();
-    }
-    if (e.key === 'F4' && cart.items.length > 0) {
-        e.preventDefault();
-        openPaymentModal();
-    }
-});
+})();
 </script>
