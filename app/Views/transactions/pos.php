@@ -404,27 +404,24 @@ const cart = {
                 var escapedName = this.escapeHtml(item.name);
                 var disabledPlus = item.quantity >= item.stock ? 'disabled' : '';
 
-                html += '<div class="cart-item" data-product-id="' + item.product_id + '">';
+                html += '<div class="cart-item" data-cart-id="' + item.product_id + '">';
                 html += '  <div class="d-flex justify-content-between align-items-start">';
                 html += '    <div class="flex-grow-1 me-2">';
                 html += '      <div class="fw-semibold small">' + escapedName + '</div>';
                 html += '      <div class="text-muted small">' + this.formatRupiah(item.price) + ' each</div>';
                 html += '    </div>';
-                html += '    <button class="btn btn-sm btn-outline-danger p-1" type="button"';
-                html += '            onclick="cart.remove(' + item.product_id + ')"';
+                html += '    <button class="btn btn-sm btn-outline-danger cart-remove p-1" type="button" data-id="' + item.product_id + '"';
                 html += '            style="min-width:32px;min-height:32px;">';
                 html += '      <i class="fas fa-times"></i>';
                 html += '    </button>';
                 html += '  </div>';
                 html += '  <div class="d-flex justify-content-between align-items-center mt-2">';
                 html += '    <div class="d-flex align-items-center gap-1">';
-                html += '      <button class="btn btn-sm btn-outline qty-btn" type="button"';
-                html += '              onclick="cart.updateQuantity(' + item.product_id + ', -1)">';
+                html += '      <button class="btn btn-sm btn-outline qty-btn qty-minus" type="button" data-id="' + item.product_id + '">';
                 html += '        <i class="fas fa-minus"></i>';
                 html += '      </button>';
                 html += '      <span class="fw-bold mx-2" style="min-width:24px;text-align:center;">' + item.quantity + '</span>';
-                html += '      <button class="btn btn-sm btn-outline qty-btn" type="button"';
-                html += '              onclick="cart.updateQuantity(' + item.product_id + ', 1)" ' + disabledPlus + '>';
+                html += '      <button class="btn btn-sm btn-outline qty-btn qty-plus" type="button" data-id="' + item.product_id + '" ' + disabledPlus + '>';
                 html += '        <i class="fas fa-plus"></i>';
                 html += '      </button>';
                 html += '    </div>';
@@ -464,6 +461,25 @@ function showToast(message, type) {
 // ===== Discount Calculation Events =====
 document.getElementById('discountValue').addEventListener('input', function() { cart.render(); });
 document.getElementById('discountType').addEventListener('change', function() { cart.render(); });
+
+// ===== Cart button event delegation =====
+document.getElementById('cartItems').addEventListener('click', function(e) {
+    var removeBtn = e.target.closest('.cart-remove');
+    if (removeBtn) {
+        cart.remove(parseInt(removeBtn.dataset.id));
+        return;
+    }
+    var qtyMinus = e.target.closest('.qty-minus');
+    if (qtyMinus) {
+        cart.updateQuantity(parseInt(qtyMinus.dataset.id), -1);
+        return;
+    }
+    var qtyPlus = e.target.closest('.qty-plus');
+    if (qtyPlus) {
+        cart.updateQuantity(parseInt(qtyPlus.dataset.id), 1);
+        return;
+    }
+});
 
 // ===== Clear Cart =====
 document.getElementById('clearCartBtn').addEventListener('click', function() {
@@ -505,16 +521,13 @@ function loadProducts(keyword, categoryId) {
                 var product = data.products[i];
                 var outOfStock = product.stock <= 0;
                 var escapedName = cart.escapeHtml(product.name);
-                var productJson = JSON.stringify({
-                    id: product.id,
-                    name: product.name,
-                    price: parseFloat(product.price),
-                    stock: parseInt(product.stock, 10)
-                }).replace(/'/g, '&#39;');
 
                 html += '<div class="col-6 col-md-4 col-xl-3">';
-                html += '  <div class="card product-card h-100' + (outOfStock ? ' out-of-stock' : '') + '"';
-                html += '       onclick="' + (outOfStock ? '' : 'cart.add(' + productJson + ')') + '">';
+                html += '  <div class="card product-card h-100' + (outOfStock ? ' out-of-stock' : '') + '"' +
+                        ' data-product-id="' + product.id + '"' +
+                        ' data-product-name="' + escapedName + '"' +
+                        ' data-product-price="' + parseFloat(product.price) + '"' +
+                        ' data-product-stock="' + parseInt(product.stock, 10) + '">';
                 html += '    <div class="card-body p-2 text-center">';
                 if (product.image) {
                     html += '      <img src="<?= url('uploads') ?>/' + product.image + '" class="img-fluid rounded mb-2" style="max-height:60px;object-fit:cover;">';
@@ -572,6 +585,22 @@ document.querySelectorAll('.category-tab').forEach(function(btn) {
         currentCategory = this.dataset.category;
         loadProducts(document.getElementById('productSearch').value.trim(), currentCategory);
     });
+});
+
+// Product grid click handler (event delegation)
+document.getElementById('productGrid').addEventListener('click', function(e) {
+    var card = e.target.closest('.product-card');
+    if (!card) return;
+    if (card.classList.contains('out-of-stock')) return;
+
+    var product = {
+        id: parseInt(card.dataset.productId),
+        name: card.dataset.productName,
+        price: parseFloat(card.dataset.productPrice),
+        stock: parseInt(card.dataset.productStock)
+    };
+
+    cart.add(product);
 });
 
 // ===== Payment Modal =====
