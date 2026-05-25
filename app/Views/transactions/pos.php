@@ -160,14 +160,16 @@
             border-left:none; border-top:2px solid var(--gray-200);
             flex-direction:row;
         }
-        .pos-cart-header { display:none; }
+        .pos-cart-header { display:flex; align-items:center; padding:10px 12px; border-bottom:1px solid var(--gray-100); font-weight:600; font-size:14px; }
+        .pos-cart-header i { color:var(--primary); margin-right:6px; }
+        .pos-cart-header span { flex:1; }
         .pos-cart-body {
             flex:1; min-width:0;
             border-right:1px solid var(--gray-200);
             padding:8px;
         }
         .pos-cart-footer {
-            flex:0 0 220px;
+            flex:0 0 260px;
             padding:12px;
             overflow-y:auto;
             display:flex !important;
