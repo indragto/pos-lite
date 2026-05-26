@@ -42,10 +42,16 @@ class AuthMiddleware
         $blocked = ['pos', 'transactions/store', 'accounting/journal/create', 'accounting/journal/store'];
         foreach ($blocked as $path) {
             if ($currentUrl === $path || str_starts_with($currentUrl, $path . '/')) {
-                // Check DB directly (not cached)
+                // Check DB directly
                 $db = new \App\Core\Database();
                 $obDone = $db->fetchColumn("SELECT value FROM settings WHERE key = 'opening_balance_done'");
-                if ($obDone !== '1') {
+
+                // Also check if opening balance journal exists (fallback)
+                $obJournal = $db->fetchColumn(
+                    "SELECT COUNT(*) FROM journal_entries WHERE reference_type = 'opening_balance' AND status = 'posted'"
+                );
+
+                if ($obDone !== '1' && $obJournal == 0) {
                     $_SESSION['flash'] = $_SESSION['flash'] ?? [];
                     $_SESSION['flash']['error'] = 'Set Opening Balance first! Go to Accounting Settings → Opening Balance.';
                     header('Location: ' . url('accounting/settings'));

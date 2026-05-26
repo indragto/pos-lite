@@ -305,7 +305,8 @@ INSERT OR IGNORE INTO settings (key, value) VALUES
 ('default_tax_account', ''),
 ('default_cash_account', ''),
 ('default_inventory_account', ''),
-('fiscal_year_start', '1');
+('fiscal_year_start', '1'),
+('opening_balance_done', '0');
 
 -- =====================================================
 -- SEED DATA: STANDARD COA (Indonesian Chart of Accounts)

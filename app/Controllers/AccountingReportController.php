@@ -391,12 +391,13 @@ class AccountingReportController extends Controller
                 'reference_type' => 'opening_balance',
             ], $lines, currentUser()['id'] ?? null);
 
-            // Update DB directly to bypass cache
-            $existing = $db->fetch("SELECT id FROM settings WHERE key = 'opening_balance_done'");
-            if ($existing) {
-                $db->update('settings', ['value' => '1'], 'key = :key', ['key' => 'opening_balance_done']);
-            } else {
-                $db->insert('settings', ['key' => 'opening_balance_done', 'value' => '1']);
+            // Update DB directly - always use INSERT OR REPLACE for safety
+            $db->exec("INSERT OR REPLACE INTO settings (key, value) VALUES ('opening_balance_done', '1')");
+
+            // Verify it was saved
+            $verify = $db->fetchColumn("SELECT value FROM settings WHERE key = 'opening_balance_done'");
+            if ($verify !== '1') {
+                throw new \Exception('Failed to save opening_balance_done flag. Please try again.');
             }
 
             // Also clear session cache
