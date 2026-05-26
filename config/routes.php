@@ -99,4 +99,10 @@ return [
     // Accounting - Settings
     'accounting/settings'           => ['controller' => 'AccountingReport', 'action' => 'settings', 'middleware' => ['auth', 'rbac:accounting.settings.manage']],
     'accounting/settings/update'    => ['controller' => 'AccountingReport', 'action' => 'updateSettings', 'middleware' => ['auth', 'rbac:accounting.settings.manage']],
+
+    // Accounting - Opening Balance & Closing
+    'accounting/opening-balance'        => ['controller' => 'AccountingReport', 'action' => 'openingBalance', 'middleware' => ['auth', 'rbac:accounting.settings.manage']],
+    'accounting/opening-balance/save'   => ['controller' => 'AccountingReport', 'action' => 'saveOpeningBalance', 'middleware' => ['auth', 'rbac:accounting.settings.manage']],
+    'accounting/closing-journal'        => ['controller' => 'AccountingReport', 'action' => 'closingJournal', 'middleware' => ['auth', 'rbac:accounting.settings.manage']],
+    'accounting/closing-journal/save'   => ['controller' => 'AccountingReport', 'action' => 'saveClosingJournal', 'middleware' => ['auth', 'rbac:accounting.settings.manage']],
 ];

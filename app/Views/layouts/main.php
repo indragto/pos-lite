@@ -144,6 +144,14 @@
                     <span class="nav-icon"><i class="fas fa-sliders-h"></i></span>
                     <span class="nav-text">Accounting Settings</span>
                 </a>
+                <a href="<?= url('accounting/opening-balance') ?>" class="nav-link <?= isActive('accounting/opening-balance', $currentPage) ? 'active' : '' ?>">
+                    <span class="nav-icon"><i class="fas fa-balance-scale"></i></span>
+                    <span class="nav-text">Opening Balance</span>
+                </a>
+                <a href="<?= url('accounting/closing-journal') ?>" class="nav-link <?= isActive('accounting/closing-journal', $currentPage) ? 'active' : '' ?>">
+                    <span class="nav-icon"><i class="fas fa-lock"></i></span>
+                    <span class="nav-text">Closing Journal</span>
+                </a>
                 <?php endif; ?>
                 <?php endif; ?>
 

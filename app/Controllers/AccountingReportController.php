@@ -289,19 +289,12 @@ class AccountingReportController extends Controller
      */
     public function settings(): void
     {
-        $settings = setting('auto_post_journal') ? [
-            'auto_post_journal' => setting('auto_post_journal'),
-            'default_sales_account' => setting('default_sales_account'),
-            'default_cogs_account' => setting('default_cogs_account'),
-            'default_tax_account' => setting('default_tax_account'),
-            'default_cash_account' => setting('default_cash_account'),
-            'default_inventory_account' => setting('default_inventory_account'),
-            'fiscal_year_start' => setting('fiscal_year_start'),
-        ] : (new \App\Models\Setting())->getAllSettings();
+        $settingModel = new \App\Models\Setting();
+        $allSettings = $settingModel->getAllSettings();
 
         $this->view('accounting/settings/index', [
             'title' => 'Accounting Settings',
-            'settings' => $settings,
+            'settings' => $allSettings,
             'coaOptions' => $this->coaModel->getLeafOptions(),
         ]);
     }
@@ -318,10 +311,194 @@ class AccountingReportController extends Controller
             'default_cash_account' => $this->input('default_cash_account') ?? '',
             'default_inventory_account' => $this->input('default_inventory_account') ?? '',
             'fiscal_year_start' => $this->input('fiscal_year_start') ?? '1',
+            'opening_balance_done' => $this->input('opening_balance_done') ?? '0',
         ];
 
         (new \App\Models\Setting())->updateMultiple($data);
         $this->setFlash('success', 'Accounting settings updated');
         $this->redirect('accounting/settings');
+    }
+
+    /**
+     * Opening Balance Form
+     */
+    public function openingBalance(): void
+    {
+        $done = setting('opening_balance_done');
+        if ($done) {
+            $this->setFlash('warning', 'Opening balance already set. Cannot change.');
+            $this->redirect('accounting/settings');
+        }
+
+        $this->view('accounting/settings/opening-balance', [
+            'title' => 'Opening Balance',
+            'coaOptions' => $this->coaModel->getLeafOptions(),
+        ]);
+    }
+
+    public function saveOpeningBalance(): void
+    {
+        $this->requireCsrf();
+
+        // Check if already done
+        if (setting('opening_balance_done')) {
+            $this->setFlash('error', 'Opening balance already set.');
+            $this->redirect('accounting/settings');
+        }
+
+        $date = $this->input('date') ?: date('Y-m-d');
+        $coaIds = $this->input('coa_id') ?? [];
+        $debits = $this->input('debit') ?? [];
+        $credits = $this->input('credit') ?? [];
+
+        $lines = [];
+        for ($i = 0; $i < count($coaIds); $i++) {
+            if (empty($coaIds[$i])) continue;
+            $debit = (float)($debits[$i] ?? 0);
+            $credit = (float)($credits[$i] ?? 0);
+            if ($debit == 0 && $credit == 0) continue;
+            if ($debit > 0 && $credit > 0) {
+                $this->setFlash('error', 'Each line can only have Debit OR Credit');
+                $this->redirect('accounting/opening-balance');
+            }
+            $lines[] = ['coa_id' => (int)$coaIds[$i], 'debit' => $debit, 'credit' => $credit, 'description' => 'Opening Balance'];
+        }
+
+        if (empty($lines)) {
+            $this->setFlash('error', 'Add at least one line with amount');
+            $this->redirect('accounting/opening-balance');
+        }
+
+        try {
+            $journalModel = new \App\Models\JournalEntry();
+            $journalModel->createEntry([
+                'date' => $date,
+                'description' => 'Saldo Awal - Opening Balance',
+                'reference_type' => 'opening_balance',
+            ], $lines, currentUser()['id'] ?? null);
+
+            // Mark as done
+            (new \App\Models\Setting())->setSetting('opening_balance_done', '1');
+
+            $this->setFlash('success', 'Opening balance saved. You can now create transactions and journal entries.');
+            $this->redirect('accounting/settings');
+        } catch (\Exception $e) {
+            $this->setFlash('error', $e->getMessage());
+            $this->redirect('accounting/opening-balance');
+        }
+    }
+
+    /**
+     * Closing Journal (Tutup Buku)
+     */
+    public function closingJournal(): void
+    {
+        $period = $this->input('period') ?? date('Y-m');
+        $year = (int)substr($period, 0, 4);
+        $month = (int)substr($period, 5, 2);
+        $startDate = date('Y-m-01', mktime(0, 0, 0, $month, 1, $year));
+        $endDate = date('Y-m-t', mktime(0, 0, 0, $month, 1, $year));
+
+        // Get revenue and expense balances
+        $revenues = $this->coaModel->query(
+            "SELECT c.id, c.code, c.name, COALESCE(SUM(jl.credit - jl.debit), 0) as balance
+             FROM coa c LEFT JOIN journal_lines jl ON c.id = jl.coa_id
+             LEFT JOIN journal_entries je ON jl.entry_id = je.id AND je.status = 'posted'
+             AND je.date BETWEEN :start AND :end
+             WHERE c.type = 'revenue' AND c.is_active = 1 GROUP BY c.id HAVING balance != 0",
+            ['start' => $startDate, 'end' => $endDate]
+        );
+
+        $expenses = $this->coaModel->query(
+            "SELECT c.id, c.code, c.name, COALESCE(SUM(jl.debit - jl.credit), 0) as balance
+             FROM coa c LEFT JOIN journal_lines jl ON c.id = jl.coa_id
+             LEFT JOIN journal_entries je ON jl.entry_id = je.id AND je.status = 'posted'
+             AND je.date BETWEEN :start AND :end
+             WHERE c.type = 'expense' AND c.is_active = 1 GROUP BY c.id HAVING balance != 0",
+            ['start' => $startDate, 'end' => $endDate]
+        );
+
+        $totalRevenue = array_sum(array_column($revenues, 'balance'));
+        $totalExpense = array_sum(array_column($expenses, 'balance'));
+        $netIncome = $totalRevenue - $totalExpense;
+
+        $this->view('accounting/settings/closing-journal', [
+            'title' => 'Closing Journal (Tutup Buku)',
+            'period' => $period,
+            'revenues' => $revenues,
+            'expenses' => $expenses,
+            'totalRevenue' => $totalRevenue,
+            'totalExpense' => $totalExpense,
+            'netIncome' => $netIncome,
+            'coaOptions' => $this->coaModel->getLeafOptions('equity'),
+        ]);
+    }
+
+    public function saveClosingJournal(): void
+    {
+        $this->requireCsrf();
+
+        $period = $this->input('period');
+        $year = (int)substr($period, 0, 4);
+        $month = (int)substr($period, 5, 2);
+        $startDate = date('Y-m-01', mktime(0, 0, 0, $month, 1, $year));
+        $endDate = date('Y-m-t', mktime(0, 0, 0, $month, 1, $year));
+        $retainedEarningsId = (int)$this->input('retained_earnings_account');
+
+        if (!$retainedEarningsId) {
+            $this->setFlash('error', 'Select Retained Earnings account');
+            $this->redirect('accounting/closing-journal?period=' . $period);
+        }
+
+        // Get revenue accounts with balances
+        $revenues = $this->coaModel->query(
+            "SELECT c.id, COALESCE(SUM(jl.credit - jl.debit), 0) as balance
+             FROM coa c LEFT JOIN journal_lines jl ON c.id = jl.coa_id
+             LEFT JOIN journal_entries je ON jl.entry_id = je.id AND je.status = 'posted'
+             AND je.date BETWEEN :start AND :end
+             WHERE c.type = 'revenue' AND c.is_active = 1 GROUP BY c.id HAVING balance != 0",
+            ['start' => $startDate, 'end' => $endDate]
+        );
+
+        $expenses = $this->coaModel->query(
+            "SELECT c.id, COALESCE(SUM(jl.debit - jl.credit), 0) as balance
+             FROM coa c LEFT JOIN journal_lines jl ON c.id = jl.coa_id
+             LEFT JOIN journal_entries je ON jl.entry_id = je.id AND je.status = 'posted'
+             AND je.date BETWEEN :start AND :end
+             WHERE c.type = 'expense' AND c.is_active = 1 GROUP BY c.id HAVING balance != 0",
+            ['start' => $startDate, 'end' => $endDate]
+        );
+
+        $lines = [];
+        // Close revenue: debit revenue, credit retained earnings
+        foreach ($revenues as $r) {
+            $lines[] = ['coa_id' => (int)$r['id'], 'debit' => (float)$r['balance'], 'credit' => 0, 'description' => 'Closing revenue'];
+        }
+        // Close expense: credit expense, debit retained earnings
+        foreach ($expenses as $e) {
+            $lines[] = ['coa_id' => (int)$e['id'], 'debit' => 0, 'credit' => (float)$e['balance'], 'description' => 'Closing expense'];
+        }
+        // Net to retained earnings
+        $netIncome = array_sum(array_column($revenues, 'balance')) - array_sum(array_column($expenses, 'balance'));
+        if ($netIncome > 0) {
+            $lines[] = ['coa_id' => $retainedEarningsId, 'debit' => 0, 'credit' => $netIncome, 'description' => 'Net income to retained earnings'];
+        } elseif ($netIncome < 0) {
+            $lines[] = ['coa_id' => $retainedEarningsId, 'debit' => abs($netIncome), 'credit' => 0, 'description' => 'Net loss to retained earnings'];
+        }
+
+        try {
+            $journalModel = new \App\Models\JournalEntry();
+            $journalModel->createEntry([
+                'date' => $endDate,
+                'description' => 'Jurnal Penutupan - ' . date('F Y', strtotime($endDate)),
+                'reference_type' => 'closing',
+            ], $lines, currentUser()['id'] ?? null);
+
+            $this->setFlash('success', 'Closing journal posted for ' . date('F Y', strtotime($endDate)));
+            $this->redirect('accounting/journal');
+        } catch (\Exception $e) {
+            $this->setFlash('error', $e->getMessage());
+            $this->redirect('accounting/closing-journal?period=' . $period);
+        }
     }
 }
