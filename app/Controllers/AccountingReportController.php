@@ -330,9 +330,20 @@ class AccountingReportController extends Controller
             $this->redirect('accounting/settings');
         }
 
+        // Get COA options grouped by type
+        $allCoa = $this->coaModel->query("SELECT id, code, name, type FROM coa WHERE type IN ('asset','liability','equity') AND is_active = 1 ORDER BY type, code ASC");
+        $coaByType = ['asset' => [], 'liability' => [], 'equity' => []];
+        foreach ($allCoa as $a) {
+            $coaByType[$a['type']][] = [
+                'id' => $a['id'],
+                'type' => $a['type'],
+                'name' => $a['code'] . ' - ' . $a['name'],
+            ];
+        }
+
         $this->view('accounting/settings/opening-balance', [
             'title' => 'Opening Balance',
-            'coaOptions' => $this->coaModel->getLeafOptions(),
+            'coaByType' => $coaByType,
         ]);
     }
 
