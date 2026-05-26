@@ -4,7 +4,7 @@
         <p>Assets, liabilities, and equity at a point in time</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="<?= url('accounting/reports/export/balance-sheet?<?= http_build_query(['end_date' => $endDate ?? '']) ?>') ?>" class="btn btn-outline">
+        <a href="<?= url('accounting/reports/export/balance-sheet?' . http_build_query(['end_date' => $endDate ?? ''])) ?>" class="btn btn-outline">
             <i class="fas fa-download"></i>Export
         </a>
     </div>

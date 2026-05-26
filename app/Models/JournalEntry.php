@@ -88,9 +88,12 @@ class JournalEntry extends Model
         ?int $limit = null,
         int $offset = 0
     ): array {
-        $sql = "SELECT je.*, u.full_name as created_by_name
+        $sql = "SELECT je.*, u.full_name as created_by_name,
+                    COALESCE(SUM(jl.debit), 0) as total_debit,
+                    COALESCE(SUM(jl.credit), 0) as total_credit
                 FROM journal_entries je
                 LEFT JOIN users u ON je.created_by = u.id
+                LEFT JOIN journal_lines jl ON je.id = jl.entry_id
                 WHERE 1=1";
         $params = [];
 
@@ -109,7 +112,7 @@ class JournalEntry extends Model
             $params['search'] = "%{$search}%";
         }
 
-        $sql .= " ORDER BY je.date DESC, je.id DESC";
+        $sql .= " GROUP BY je.id ORDER BY je.date DESC, je.id DESC";
 
         if ($limit !== null) {
             $sql .= " LIMIT {$limit}";
@@ -219,7 +222,7 @@ class JournalEntry extends Model
      */
     public function countEntries(?string $startDate = null, ?string $endDate = null): int
     {
-        $sql = "SELECT COUNT(*) FROM journal_entries WHERE status = 'posted'";
+        $sql = "SELECT COUNT(*) FROM journal_entries WHERE 1=1";
         $params = [];
 
         if ($startDate) {

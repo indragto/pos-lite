@@ -4,7 +4,7 @@
         <p>Verify that total debits equal total credits</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="<?= url('accounting/reports/export/trial-balance?<?= http_build_query(['end_date' => $endDate ?? '']) ?>') ?>" class="btn btn-outline">
+        <a href="<?= url('accounting/reports/export/trial-balance?' . http_build_query(['end_date' => $endDate ?? ''])) ?>" class="btn btn-outline">
             <i class="fas fa-download"></i>Export
         </a>
     </div>

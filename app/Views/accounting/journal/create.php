@@ -16,7 +16,7 @@
             <div class="row g-3 mb-4">
                 <div class="col-md-3">
                     <label class="form-label">Date <span class="text-danger">*</span></label>
-                    <input type="date" name="entry_date" class="form-control"
+                    <input type="date" name="date" class="form-control"
                            value="<?= date('Y-m-d') ?>" required>
                 </div>
 
@@ -59,25 +59,23 @@
                     <tbody id="linesBody">
                         <tr>
                             <td>
-                                <select name="lines[0][coa_id]" class="form-select form-select-sm" required>
+                                <select name="coa_id[]" class="form-select form-select-sm" required>
                                     <option value="">-- Select Account --</option>
-                                    <?php foreach ($coaOptions as $option): ?>
-                                        <option value="<?= $option['id'] ?>">
-                                            <?= e($option['code']) ?> - <?= e($option['name']) ?>
-                                        </option>
+                                    <?php foreach ($coaOptions as $id => $label): ?>
+                                        <option value="<?= e($id) ?>"><?= e($label) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </td>
                             <td>
-                                <input type="number" name="lines[0][debit]" class="form-control form-control-sm text-end"
+                                <input type="number" name="debit[]" class="form-control form-control-sm text-end"
                                        step="0.01" min="0" value="0" oninput="updateBalance()">
                             </td>
                             <td>
-                                <input type="number" name="lines[0][credit]" class="form-control form-control-sm text-end"
+                                <input type="number" name="credit[]" class="form-control form-control-sm text-end"
                                        step="0.01" min="0" value="0" oninput="updateBalance()">
                             </td>
                             <td>
-                                <input type="text" name="lines[0][description]" class="form-control form-control-sm"
+                                <input type="text" name="line_description[]" class="form-control form-control-sm"
                                        placeholder="Line description">
                             </td>
                             <td>
@@ -88,25 +86,23 @@
                         </tr>
                         <tr>
                             <td>
-                                <select name="lines[1][coa_id]" class="form-select form-select-sm" required>
+                                <select name="coa_id[]" class="form-select form-select-sm" required>
                                     <option value="">-- Select Account --</option>
-                                    <?php foreach ($coaOptions as $option): ?>
-                                        <option value="<?= $option['id'] ?>">
-                                            <?= e($option['code']) ?> - <?= e($option['name']) ?>
-                                        </option>
+                                    <?php foreach ($coaOptions as $id => $label): ?>
+                                        <option value="<?= e($id) ?>"><?= e($label) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </td>
                             <td>
-                                <input type="number" name="lines[1][debit]" class="form-control form-control-sm text-end"
+                                <input type="number" name="debit[]" class="form-control form-control-sm text-end"
                                        step="0.01" min="0" value="0" oninput="updateBalance()">
                             </td>
                             <td>
-                                <input type="number" name="lines[1][credit]" class="form-control form-control-sm text-end"
+                                <input type="number" name="credit[]" class="form-control form-control-sm text-end"
                                        step="0.01" min="0" value="0" oninput="updateBalance()">
                             </td>
                             <td>
-                                <input type="text" name="lines[1][description]" class="form-control form-control-sm"
+                                <input type="text" name="line_description[]" class="form-control form-control-sm"
                                        placeholder="Line description">
                             </td>
                             <td>
@@ -134,11 +130,11 @@
                     <div class="d-flex gap-3">
                         <div>
                             <small class="text-muted d-block">Total Debit</small>
-                            <strong id="totalDebit" class="text-success"><?= formatRupiah(0) ?></strong>
+                            <strong id="totalDebit"><?= formatRupiah(0) ?></strong>
                         </div>
                         <div>
                             <small class="text-muted d-block">Total Credit</small>
-                            <strong id="totalCredit" class="text-danger"><?= formatRupiah(0) ?></strong>
+                            <strong id="totalCredit"><?= formatRupiah(0) ?></strong>
                         </div>
                     </div>
                 </div>
@@ -162,27 +158,35 @@
 </div>
 
 <script>
-var lineIndex = 2;
+function getSelectOptions() {
+    var options = [];
+    <?php foreach ($coaOptions as $id => $label): ?>
+    options.push({ id: '<?= e($id) ?>', label: '<?= e($label) ?>' });
+    <?php endforeach; ?>
+    return options;
+}
+
+function buildSelectHtml(name) {
+    var options = getSelectOptions();
+    var html = '<select name="' + name + '" class="form-select form-select-sm" required>';
+    html += '<option value="">-- Select Account --</option>';
+    for (var i = 0; i < options.length; i++) {
+        html += '<option value="' + options[i].id + '">' + options[i].label + '</option>';
+    }
+    html += '</select>';
+    return html;
+}
 
 function addRow() {
     var tbody = document.getElementById('linesBody');
     var row = document.createElement('tr');
-    var coaOptions = <?= json_encode(array_map(function($o) { return ['id' => $o['id'], 'code' => $o['code'], 'name' => $o['name']]; }, $coaOptions)) ?>;
-
-    var selectHtml = '<option value="">-- Select Account --</option>';
-    for (var i = 0; i < coaOptions.length; i++) {
-        selectHtml += '<option value="' + coaOptions[i].id + '">' + coaOptions[i].code + ' - ' + coaOptions[i].name + '</option>';
-    }
-
     row.innerHTML =
-        '<td><select name="lines[' + lineIndex + '][coa_id]" class="form-select form-select-sm" required>' + selectHtml + '</select></td>' +
-        '<td><input type="number" name="lines[' + lineIndex + '][debit]" class="form-control form-control-sm text-end" step="0.01" min="0" value="0" oninput="updateBalance()"></td>' +
-        '<td><input type="number" name="lines[' + lineIndex + '][credit]" class="form-control form-control-sm text-end" step="0.01" min="0" value="0" oninput="updateBalance()"></td>' +
-        '<td><input type="text" name="lines[' + lineIndex + '][description]" class="form-control form-control-sm" placeholder="Line description"></td>' +
+        '<td>' + buildSelectHtml('coa_id[]') + '</td>' +
+        '<td><input type="number" name="debit[]" class="form-control form-control-sm text-end" step="0.01" min="0" value="0" oninput="updateBalance()"></td>' +
+        '<td><input type="number" name="credit[]" class="form-control form-control-sm text-end" step="0.01" min="0" value="0" oninput="updateBalance()"></td>' +
+        '<td><input type="text" name="line_description[]" class="form-control form-control-sm" placeholder="Line description"></td>' +
         '<td><button type="button" class="btn btn-sm btn-outline text-danger" onclick="removeRow(this)"><i class="fas fa-times"></i></button></td>';
-
     tbody.appendChild(row);
-    lineIndex++;
     updateBalance();
 }
 
@@ -193,8 +197,8 @@ function removeRow(btn) {
 }
 
 function updateBalance() {
-    var debits = document.querySelectorAll('input[name$="[debit]"]');
-    var credits = document.querySelectorAll('input[name$="[credit]"]');
+    var debits = document.querySelectorAll('input[name="debit[]"]');
+    var credits = document.querySelectorAll('input[name="credit[]"]');
     var totalDebit = 0;
     var totalCredit = 0;
 

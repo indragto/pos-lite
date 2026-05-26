@@ -4,7 +4,7 @@
         <p>View general ledger for an account</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="<?= url('accounting/reports/export/ledger?<?= http_build_query(['coa_id' => $coaId ?? '', 'start_date' => $startDate ?? '', 'end_date' => $endDate ?? '']) ?>')" class="btn btn-outline"
+        <a href="<?= url('accounting/reports/export/ledger?' . http_build_query(['coa_id' => $coaId ?? '', 'start_date' => $startDate ?? '', 'end_date' => $endDate ?? ''])) ?>" class="btn btn-outline"
            <?= empty($coaId) ? 'disabled' : '' ?>>
             <i class="fas fa-download"></i>Export
         </a>

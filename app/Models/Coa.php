@@ -192,14 +192,19 @@ class Coa extends Model
                 LEFT JOIN journal_entries je ON jl.entry_id = je.id AND je.status = 'posted'";
         $params = [];
 
+        $whereClauses = [];
         if ($startDate) {
-            $sql .= " AND je.date >= :start_date";
+            $whereClauses[] = "je.date >= :start_date";
             $params['start_date'] = $startDate;
         }
 
         if ($endDate) {
-            $sql .= " AND je.date <= :end_date";
+            $whereClauses[] = "je.date <= :end_date";
             $params['end_date'] = $endDate;
+        }
+
+        if (!empty($whereClauses)) {
+            $sql .= " WHERE (" . implode(' AND ', $whereClauses) . " OR je.id IS NULL)";
         }
 
         $sql .= " GROUP BY c.id ORDER BY c.code ASC";

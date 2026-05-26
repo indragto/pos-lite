@@ -22,9 +22,28 @@ class CoaController extends Controller
         $view = $this->input('view') ?? 'tree';
 
         if ($type) {
-            $accounts = $this->coaModel->getByType($type);
+            $accounts = $this->coaModel->query(
+                "SELECT c.*, p.name as parent_name,
+                 COALESCE((SELECT SUM(jl.debit) - SUM(jl.credit)
+                   FROM journal_lines jl
+                   INNER JOIN journal_entries je ON jl.entry_id = je.id
+                   WHERE jl.coa_id = c.id AND je.status = 'posted'), 0) as balance
+                 FROM coa c
+                 LEFT JOIN coa p ON c.parent_id = p.id
+                 WHERE c.type = :type AND c.is_active = 1 ORDER BY c.code ASC",
+                ['type' => $type]
+            );
         } else {
-            $accounts = $this->coaModel->query("SELECT * FROM coa WHERE is_active = 1 ORDER BY code ASC");
+            $accounts = $this->coaModel->query(
+                "SELECT c.*, p.name as parent_name,
+                 COALESCE((SELECT SUM(jl.debit) - SUM(jl.credit)
+                   FROM journal_lines jl
+                   INNER JOIN journal_entries je ON jl.entry_id = je.id
+                   WHERE jl.coa_id = c.id AND je.status = 'posted'), 0) as balance
+                 FROM coa c
+                 LEFT JOIN coa p ON c.parent_id = p.id
+                 WHERE c.is_active = 1 ORDER BY c.code ASC"
+            );
         }
 
         $this->view('accounting/coa/index', [
@@ -81,7 +100,17 @@ class CoaController extends Controller
 
     public function edit(string $id): void
     {
-        $account = $this->coaModel->find((int)$id);
+        $account = $this->coaModel->queryOne(
+            "SELECT c.*, p.name as parent_name,
+             COALESCE((SELECT SUM(jl.debit) - SUM(jl.credit)
+               FROM journal_lines jl
+               INNER JOIN journal_entries je ON jl.entry_id = je.id
+               WHERE jl.coa_id = c.id AND je.status = 'posted'), 0) as balance
+             FROM coa c
+             LEFT JOIN coa p ON c.parent_id = p.id
+             WHERE c.id = :id",
+            ['id' => (int)$id]
+        );
         if (!$account) {
             $this->setFlash('error', 'Account not found');
             $this->redirect('accounting/coa');

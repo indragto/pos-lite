@@ -33,7 +33,7 @@ class AccountingReportController extends Controller
         $lines = [];
         if ($coaId && $account) {
             $lines = $this->coaModel->query(
-                "SELECT je.entry_no, je.date, je.description as entry_desc, jl.debit, jl.credit, jl.description, jl.coa_id,
+                "SELECT je.id as entry_id, je.entry_no, je.date, je.description as entry_desc, jl.debit, jl.credit, jl.description, jl.coa_id,
                         c.code as coa_code, c.name as coa_name
                  FROM journal_lines jl
                  INNER JOIN journal_entries je ON jl.entry_id = je.id
@@ -111,11 +111,10 @@ class AccountingReportController extends Controller
 
         $revenues = $this->coaModel->query(
             "SELECT c.id, c.code, c.name,
-             COALESCE(SUM(jl.credit), 0) as total
+             COALESCE(SUM(CASE WHEN je.status = 'posted' AND je.date BETWEEN :start_date AND :end_date THEN jl.credit ELSE 0 END), 0) as total
              FROM coa c
              LEFT JOIN journal_lines jl ON c.id = jl.coa_id
-             LEFT JOIN journal_entries je ON jl.entry_id = je.id AND je.status = 'posted'
-             AND je.date BETWEEN :start_date AND :end_date
+             LEFT JOIN journal_entries je ON jl.entry_id = je.id
              WHERE c.type = 'revenue' AND c.is_active = 1
              GROUP BY c.id ORDER BY c.code ASC",
             ['start_date' => $startDate, 'end_date' => $endDate]
@@ -123,11 +122,10 @@ class AccountingReportController extends Controller
 
         $expenses = $this->coaModel->query(
             "SELECT c.id, c.code, c.name,
-             COALESCE(SUM(jl.debit), 0) as total
+             COALESCE(SUM(CASE WHEN je.status = 'posted' AND je.date BETWEEN :start_date AND :end_date THEN jl.debit ELSE 0 END), 0) as total
              FROM coa c
              LEFT JOIN journal_lines jl ON c.id = jl.coa_id
-             LEFT JOIN journal_entries je ON jl.entry_id = je.id AND je.status = 'posted'
-             AND je.date BETWEEN :start_date AND :end_date
+             LEFT JOIN journal_entries je ON jl.entry_id = je.id
              WHERE c.type = 'expense' AND c.is_active = 1
              GROUP BY c.id ORDER BY c.code ASC",
             ['start_date' => $startDate, 'end_date' => $endDate]
@@ -159,11 +157,11 @@ class AccountingReportController extends Controller
         $getBalances = function($type) use ($endDate) {
             return $this->coaModel->query(
                 "SELECT c.id, c.code, c.name,
-                 COALESCE(SUM(jl.debit), 0) - COALESCE(SUM(jl.credit), 0) as balance
+                 COALESCE(SUM(CASE WHEN je.status = 'posted' AND je.date <= :end_date THEN jl.debit ELSE 0 END), 0)
+                 - COALESCE(SUM(CASE WHEN je.status = 'posted' AND je.date <= :end_date THEN jl.credit ELSE 0 END), 0) as balance
                  FROM coa c
                  LEFT JOIN journal_lines jl ON c.id = jl.coa_id
-                 LEFT JOIN journal_entries je ON jl.entry_id = je.id AND je.status = 'posted'
-                 AND je.date <= :end_date
+                 LEFT JOIN journal_entries je ON jl.entry_id = je.id
                  WHERE c.type = :type AND c.is_active = 1
                  GROUP BY c.id ORDER BY c.code ASC",
                 ['type' => $type, 'end_date' => $endDate]
@@ -253,25 +251,35 @@ class AccountingReportController extends Controller
      */
     private function getNetIncome(?string $startDate, string $endDate): float
     {
-        $revenue = (float) $this->coaModel->queryOne(
-            "SELECT COALESCE(SUM(jl.credit), 0) as total
+        $sql = "SELECT COALESCE(SUM(jl.credit), 0) as total
              FROM journal_lines jl
              INNER JOIN journal_entries je ON jl.entry_id = je.id
              INNER JOIN coa c ON jl.coa_id = c.id
              WHERE c.type = 'revenue' AND je.status = 'posted'
-             AND je.date <= :end_date" . ($startDate ? " AND je.date >= :start_date" : ""),
-            ['start_date' => $startDate, 'end_date' => $endDate]
-        )['total'];
+             AND je.date <= :end_date";
+        $params = ['end_date' => $endDate];
 
-        $expense = (float) $this->coaModel->queryOne(
-            "SELECT COALESCE(SUM(jl.debit), 0) as total
+        if ($startDate) {
+            $sql .= " AND je.date >= :start_date";
+            $params['start_date'] = $startDate;
+        }
+
+        $revenue = (float) $this->coaModel->queryOne($sql, $params)['total'];
+
+        $sql2 = "SELECT COALESCE(SUM(jl.debit), 0) as total
              FROM journal_lines jl
              INNER JOIN journal_entries je ON jl.entry_id = je.id
              INNER JOIN coa c ON jl.coa_id = c.id
              WHERE c.type = 'expense' AND je.status = 'posted'
-             AND je.date <= :end_date" . ($startDate ? " AND je.date >= :start_date" : ""),
-            ['start_date' => $startDate, 'end_date' => $endDate]
-        )['total'];
+             AND je.date <= :end_date";
+        $params2 = ['end_date' => $endDate];
+
+        if ($startDate) {
+            $sql2 .= " AND je.date >= :start_date";
+            $params2['start_date'] = $startDate;
+        }
+
+        $expense = (float) $this->coaModel->queryOne($sql2, $params2)['total'];
 
         return $revenue - $expense;
     }

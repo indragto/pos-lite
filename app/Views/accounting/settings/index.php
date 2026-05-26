@@ -15,8 +15,8 @@
                     <!-- Auto-post Setting -->
                     <div class="mb-4 p-3 rounded" style="background: var(--gray-50);">
                         <div class="form-check form-switch">
-                            <input type="checkbox" name="auto_post_pos" class="form-check-input" id="autoPostPos"
-                                   value="1" <?= ($settings['auto_post_pos'] ?? 0) ? 'checked' : '' ?>>
+                            <input type="checkbox" name="auto_post_journal" class="form-check-input" id="autoPostPos"
+                                   value="1" <?= ($settings['auto_post_journal'] ?? 0) ? 'checked' : '' ?>>
                             <label class="form-check-label fw-semibold" for="autoPostPos">
                                 Auto-post journal entries from POS transactions
                             </label>

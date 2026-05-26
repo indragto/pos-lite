@@ -4,7 +4,7 @@
         <p>Revenue and expenses for the selected period</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="<?= url('accounting/reports/export/income-statement?<?= http_build_query(['start_date' => $startDate ?? '', 'end_date' => $endDate ?? '']) ?>') ?>" class="btn btn-outline">
+        <a href="<?= url('accounting/reports/export/income-statement?' . http_build_query(['start_date' => $startDate ?? '', 'end_date' => $endDate ?? ''])) ?>" class="btn btn-outline">
             <i class="fas fa-download"></i>Export
         </a>
     </div>
@@ -45,25 +45,10 @@
                     <div class="table-responsive" style="border: none;">
                         <table class="table table-sm mb-0">
                             <tbody>
-                                <?php
-                                $currentGroup = '';
-                                foreach ($revenues as $acc):
-                                    if ($currentGroup !== ($acc['group'] ?? '')):
-                                        $currentGroup = $acc['group'] ?? '';
-                                        if ($currentGroup !== ''):
-                                ?>
-                                    <tr class="table-light">
-                                        <td colspan="2">
-                                            <small class="fw-bold text-muted text-uppercase"><?= e($currentGroup) ?></small>
-                                        </td>
-                                    </tr>
-                                <?php
-                                        endif;
-                                    endif;
-                                ?>
+                                <?php foreach ($revenues as $acc): ?>
                                 <tr>
                                     <td><?= e($acc['code']) ?> - <?= e($acc['name']) ?></td>
-                                    <td class="text-end fw-bold"><?= formatRupiah($acc['amount'] ?? 0) ?></td>
+                                    <td class="text-end fw-bold"><?= formatRupiah($acc['total'] ?? 0) ?></td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -89,25 +74,10 @@
                     <div class="table-responsive" style="border: none;">
                         <table class="table table-sm mb-0">
                             <tbody>
-                                <?php
-                                $currentGroup = '';
-                                foreach ($expenses as $acc):
-                                    if ($currentGroup !== ($acc['group'] ?? '')):
-                                        $currentGroup = $acc['group'] ?? '';
-                                        if ($currentGroup !== ''):
-                                ?>
-                                    <tr class="table-light">
-                                        <td colspan="2">
-                                            <small class="fw-bold text-muted text-uppercase"><?= e($currentGroup) ?></small>
-                                        </td>
-                                    </tr>
-                                <?php
-                                        endif;
-                                    endif;
-                                ?>
+                                <?php foreach ($expenses as $acc): ?>
                                 <tr>
                                     <td><?= e($acc['code']) ?> - <?= e($acc['name']) ?></td>
-                                    <td class="text-end fw-bold"><?= formatRupiah($acc['amount'] ?? 0) ?></td>
+                                    <td class="text-end fw-bold"><?= formatRupiah($acc['total'] ?? 0) ?></td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>

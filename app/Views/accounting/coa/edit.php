@@ -32,10 +32,10 @@
                             <label class="form-label">Account Type <span class="text-danger">*</span></label>
                             <select name="type" class="form-select" required>
                                 <option value="">-- Select Type --</option>
-                                <?php foreach ($types as $type): ?>
-                                    <option value="<?= e($type) ?>"
-                                            <?= ($account['type'] ?? '') === $type ? 'selected' : '' ?>>
-                                        <?= e(ucfirst($type)) ?>
+                                <?php foreach ($types as $key => $label): ?>
+                                    <option value="<?= e($key) ?>"
+                                            <?= ($account['type'] ?? '') === $key ? 'selected' : '' ?>>
+                                        <?= e($label) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>

@@ -58,7 +58,7 @@
                             <?= e($entry['entry_no'] ?? '') ?>
                         </a>
                     </td>
-                    <td><?= formatDate($entry['entry_date'] ?? '', 'd/m/Y') ?></td>
+                    <td><?= formatDate($entry['date'] ?? '', 'd/m/Y') ?></td>
                     <td><?= e(truncate($entry['description'] ?? '', 40)) ?></td>
                     <td>
                         <?php if (!empty($entry['reference_type']) && !empty($entry['reference_id'])): ?>
@@ -135,7 +135,7 @@
 <div class="modal fade" id="voidModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post" action="<?= url('accounting/journal/void') ?>">
+            <form method="post" id="voidForm" action="">
                 <?= csrf_field() ?>
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fas fa-ban text-danger me-2"></i>Void Journal Entry</h5>
@@ -145,9 +145,8 @@
                     <p>Are you sure you want to void entry <strong id="voidEntryNo"></strong>?</p>
                     <div class="mb-3">
                         <label class="form-label">Reason <span class="text-danger">*</span></label>
-                        <textarea name="reason" class="form-control" rows="3" required placeholder="Reason for voiding..."></textarea>
+                        <textarea name="void_reason" class="form-control" rows="3" required placeholder="Reason for voiding..."></textarea>
                     </div>
-                    <input type="hidden" name="entry_id" id="voidEntryId" value="">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancel</button>
@@ -162,8 +161,8 @@
 
 <script>
 function voidEntry(id, entryNo) {
-    document.getElementById('voidEntryId').value = id;
     document.getElementById('voidEntryNo').textContent = entryNo;
+    document.getElementById('voidForm').action = '<?= url('accounting/journal/void') ?>/' + id;
     var modal = new bootstrap.Modal(document.getElementById('voidModal'));
     modal.show();
 }

@@ -4,7 +4,7 @@
         <p>Cash inflows and outflows for the selected period</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="<?= url('accounting/reports/export/cash-flow?<?= http_build_query(['start_date' => $startDate ?? '', 'end_date' => $endDate ?? '']) ?>') ?>" class="btn btn-outline">
+        <a href="<?= url('accounting/reports/export/cash-flow?' . http_build_query(['start_date' => $startDate ?? '', 'end_date' => $endDate ?? ''])) ?>" class="btn btn-outline">
             <i class="fas fa-download"></i>Export
         </a>
     </div>
