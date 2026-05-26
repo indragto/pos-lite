@@ -2,7 +2,11 @@
     <div><h1><i class="fas fa-sliders-h text-primary me-2"></i>Accounting Settings</h1><p>Configure defaults and preferences</p></div>
 </div>
 
-<?php if (!setting('opening_balance_done')): ?>
+<?php
+$db = new \App\Core\Database();
+$obDone = $db->fetchColumn("SELECT value FROM settings WHERE key = 'opening_balance_done'") === '1';
+?>
+<?php if (!$obDone): ?>
 <div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i><strong>Opening Balance Required!</strong> You must set the opening balance before creating transactions or journal entries.<br>
 <a href="<?= url('accounting/opening-balance') ?>" class="btn btn-warning btn-sm mt-2"><i class="fas fa-plus"></i>Set Opening Balance</a></div>
 <?php else: ?>

@@ -324,8 +324,9 @@ class AccountingReportController extends Controller
      */
     public function openingBalance(): void
     {
-        $done = setting('opening_balance_done');
-        if ($done) {
+        $db = new \App\Core\Database();
+        $done = $db->fetchColumn("SELECT value FROM settings WHERE key = 'opening_balance_done'");
+        if ($done === '1') {
             $this->setFlash('warning', 'Opening balance already set. Cannot change.');
             $this->redirect('accounting/settings');
         }
@@ -351,8 +352,10 @@ class AccountingReportController extends Controller
     {
         $this->requireCsrf();
 
-        // Check if already done
-        if (setting('opening_balance_done')) {
+        // Check DB directly (not cached)
+        $db = new \App\Core\Database();
+        $obDone = $db->fetchColumn("SELECT value FROM settings WHERE key = 'opening_balance_done'");
+        if ($obDone === '1') {
             $this->setFlash('error', 'Opening balance already set.');
             $this->redirect('accounting/settings');
         }
@@ -388,8 +391,16 @@ class AccountingReportController extends Controller
                 'reference_type' => 'opening_balance',
             ], $lines, currentUser()['id'] ?? null);
 
-            // Mark as done
-            (new \App\Models\Setting())->setSetting('opening_balance_done', '1');
+            // Update DB directly to bypass cache
+            $existing = $db->fetch("SELECT id FROM settings WHERE key = 'opening_balance_done'");
+            if ($existing) {
+                $db->update('settings', ['value' => '1'], 'key = :key', ['key' => 'opening_balance_done']);
+            } else {
+                $db->insert('settings', ['key' => 'opening_balance_done', 'value' => '1']);
+            }
+
+            // Also clear session cache
+            unset($_SESSION['_settings_cache']);
 
             $this->setFlash('success', 'Opening balance saved. You can now create transactions and journal entries.');
             $this->redirect('accounting/settings');

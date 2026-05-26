@@ -42,7 +42,10 @@ class AuthMiddleware
         $blocked = ['pos', 'transactions/store', 'accounting/journal/create', 'accounting/journal/store'];
         foreach ($blocked as $path) {
             if ($currentUrl === $path || str_starts_with($currentUrl, $path . '/')) {
-                if (!setting('opening_balance_done')) {
+                // Check DB directly (not cached)
+                $db = new \App\Core\Database();
+                $obDone = $db->fetchColumn("SELECT value FROM settings WHERE key = 'opening_balance_done'");
+                if ($obDone !== '1') {
                     $_SESSION['flash'] = $_SESSION['flash'] ?? [];
                     $_SESSION['flash']['error'] = 'Set Opening Balance first! Go to Accounting Settings → Opening Balance.';
                     header('Location: ' . url('accounting/settings'));

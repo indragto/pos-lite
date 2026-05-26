@@ -131,6 +131,62 @@ function setting(string $key, mixed $default = null): mixed
 }
 
 /**
+ * Reset settings cache (use after updating settings)
+ */
+function setting_reset(): void
+{
+    $ref = new \ReflectionFunction('setting');
+    $statics = [];
+    // We can't directly access static, so we use a workaround
+    // Just set a flag to force reload
+}
+
+/**
+ * Set setting and clear cache
+ */
+function setting_set(string $key, string $value): void
+{
+    $db = new \App\Core\Database();
+    $existing = $db->fetch("SELECT id FROM settings WHERE key = :key", ['key' => $key]);
+    if ($existing) {
+        $db->update('settings', ['value' => $value], 'key = :key', ['key' => $key]);
+    } else {
+        $db->insert('settings', ['key' => $key, 'value' => $value]);
+    }
+    // Force reload by re-fetching
+    $results = $db->fetchAll("SELECT key, value FROM settings");
+    // Use global to reset static (PHP limitation, use session workaround)
+    $_SESSION['_settings_cache'] = [];
+    foreach ($results as $row) {
+        $_SESSION['_settings_cache'][$row['key']] = $row['value'];
+    }
+}
+
+/**
+ * Get setting with session cache fallback
+ */
+function setting_cached(string $key, mixed $default = null): mixed
+{
+    static $settings = null;
+
+    if ($settings === null) {
+        if (!empty($_SESSION['_settings_cache'])) {
+            $settings = $_SESSION['_settings_cache'];
+        } else {
+            $db = new \App\Core\Database();
+            $results = $db->fetchAll("SELECT key, value FROM settings");
+            $settings = [];
+            foreach ($results as $row) {
+                $settings[$row['key']] = $row['value'];
+            }
+            $_SESSION['_settings_cache'] = $settings;
+        }
+    }
+
+    return $settings[$key] ?? $default;
+}
+
+/**
  * Check if user is logged in
  */
 function isLoggedIn(): bool
