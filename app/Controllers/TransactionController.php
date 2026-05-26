@@ -87,14 +87,110 @@ class TransactionController extends Controller
         try {
             $transactionId = $this->transactionModel->createTransaction($transactionData, $transactionItems);
 
+            // Auto-post journal if enabled and opening balance is set
+            if (setting('auto_post_journal') === '1') {
+                try {
+                    $this->autoPostJournal($transactionId, $transactionData, $items);
+                } catch (\Exception $e) {
+                    error_log('Auto-post journal failed: ' . $e->getMessage());
+                    // Don't fail the transaction, just log the error
+                }
+            }
+
             $this->json([
                 'success' => true,
                 'message' => 'Transaction completed successfully',
                 'transaction_id' => $transactionId,
-                'invoice_no' => generateInvoiceNo(), // Will be set in createTransaction
+                'invoice_no' => generateInvoiceNo(),
             ]);
         } catch (\Exception $e) {
             $this->json(['success' => false, 'message' => 'Failed to process transaction: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Auto-post journal from POS transaction
+     */
+    private function autoPostJournal(int $transactionId, array $transactionData, array $items): void
+    {
+        $cashAccount = (int)setting('default_cash_account', 0);
+        $salesAccount = (int)setting('default_sales_account', 0);
+        $taxAccount = (int)setting('default_tax_account', 0);
+        $cogsAccount = (int)setting('default_cogs_account', 0);
+        $inventoryAccount = (int)setting('default_inventory_account', 0);
+
+        if (!$cashAccount || !$salesAccount) {
+            return; // Can't post without default accounts
+        }
+
+        $lines = [];
+
+        // Debit: Cash/Bank
+        $lines[] = [
+            'coa_id' => $cashAccount,
+            'debit' => $transactionData['amount_paid'],
+            'credit' => 0,
+            'description' => 'Payment: ' . ucfirst($transactionData['payment_method']),
+        ];
+
+        // Credit: Sales Revenue
+        $salesTotal = $transactionData['subtotal'];
+        if ($salesTotal > 0) {
+            $lines[] = [
+                'coa_id' => $salesAccount,
+                'debit' => 0,
+                'credit' => $salesTotal,
+                'description' => 'Sales revenue',
+            ];
+        }
+
+        // Credit: Tax Payable (if tax > 0)
+        $taxAmount = $transactionData['tax'];
+        if ($taxAmount > 0 && $taxAccount) {
+            $lines[] = [
+                'coa_id' => $taxAccount,
+                'debit' => 0,
+                'credit' => $taxAmount,
+                'description' => 'Tax payable',
+            ];
+        }
+
+        // Debit: COGS & Credit: Inventory (perpetual method)
+        if ($cogsAccount && $inventoryAccount) {
+            foreach ($items as $item) {
+                $productId = (int)$item['product_id'];
+                $quantity = (int)$item['quantity'];
+
+                // Get product cost
+                $product = $this->model('Product')->find($productId);
+                if ($product && $product['cost'] > 0) {
+                    $cogsAmount = (float)$product['cost'] * $quantity;
+
+                    $lines[] = [
+                        'coa_id' => $cogsAccount,
+                        'debit' => $cogsAmount,
+                        'credit' => 0,
+                        'description' => 'COGS: ' . ($product['name'] ?? '') . ' x' . $quantity,
+                    ];
+
+                    $lines[] = [
+                        'coa_id' => $inventoryAccount,
+                        'debit' => 0,
+                        'credit' => $cogsAmount,
+                        'description' => 'Inventory reduction: ' . ($product['name'] ?? '') . ' x' . $quantity,
+                    ];
+                }
+            }
+        }
+
+        if (count($lines) > 0) {
+            $journalModel = new \App\Models\JournalEntry();
+            $journalModel->createEntry([
+                'date' => date('Y-m-d'),
+                'description' => 'POS Sale: ' . generateInvoiceNo(),
+                'reference_type' => 'pos_sale',
+                'reference_id' => $transactionId,
+            ], $lines, currentUser()['id'] ?? null);
         }
     }
 
